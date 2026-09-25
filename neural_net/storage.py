@@ -1,7 +1,8 @@
 """
 Where the program saves the files it creates: everything goes in the project's "data" folder.
 
-    data/photos/          the digit photos (train and test) and the copy of MNIST
+    data/photos/          the digit photos (train and test) as PNG, their quick copy (train.npz and test.npz)
+                          and the copy of MNIST
     data/model.npz        the trained network (that is, its weights)
     data/charts/          the charts saved by the terminal commands
     data/settings.json    the program preferences (reset does not delete them)

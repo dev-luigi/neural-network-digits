@@ -47,10 +47,11 @@ The interface is available in English and Italian (language selector in the **In
 - **Automatic updates** from the GitHub releases, with one click.
 
 ### 1 · Data — the pre-training
-How many photos to download, what the dataset looks like before training (examples, photos per digit,
+How many photos to download (or the whole collection: all the 70,000 photos of MNIST, after a window that tells
+you how much space they take), what the dataset looks like before training (examples, photos per digit,
 "average digit", pixel values) and the project reset.
 
-![Data tab — examples, photos per digit and the average digit](docs/1_data.png)
+![Data tab — the whole collection: examples, photos per digit and the average digit](docs/1_data.png)
 
 ### 2 · Training — watch it learn
 Loss curve (for every mini-batch and for every epoch), accuracy, strength of the corrections per layer with the
@@ -134,7 +135,8 @@ and `start.sh` run at every push (CI).
 1. in the **1 · Data** tab press *Download the photos* (MNIST, ~11 MB, only once);
 2. in the **2 · Training** tab press *Start*: with the starting settings (1000 photos,
    60 epochs) it takes less than half a minute and gets to about 91% on the test photos.
-   With more photos (for example 700 per digit) it gets to about 96%.
+   With more photos (for example 700 per digit) it gets to about 96%, and with the whole collection
+   (60,000 photos) to about 98.5%, but the training takes about 5 minutes.
 
 ### Updates
 
@@ -170,7 +172,7 @@ with `git clone`, update with `git pull` instead.
 The same steps, without the interface (on Linux and macOS: `./start.sh` instead of `start.bat`):
 
 ```text
-start.bat download --per-digit 100       1. downloads the photos
+start.bat download --per-digit 100       1. downloads the photos (with --all the whole collection)
 start.bat explore                        2. pre-training: charts about the dataset
 start.bat train    --epochs 60 --lr 0.05 3. trains (also --noise --dropout --activation tanh ...)
 start.bat evaluate --noise 0.3           4. tests on the test photos (also --rotation --thickness --map t-SNE)
@@ -242,7 +244,7 @@ On Linux and macOS let `./start.sh` create the `.venv` with the libraries, then 
 The tests check:
 - backpropagation, compared with the gradient computed numerically;
 - learning with all the activations, and the softmax;
-- the preparation of the photos and all the charts;
+- the saving of the photos and their quick copy, the preparation of the photos and all the charts;
 - the install of updates: `data/` is not touched, dangerous zips are refused
   and the old files go back in place if something goes wrong;
 - the release tool: the version and the changes in CHANGELOG.md;

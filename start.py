@@ -5,7 +5,7 @@ START: the starting point of the project.
     python start.py                the same thing, from the terminal
     python start.py <command>      runs a single step from the terminal (also:  start.bat <command>)
 
-        download  1. downloads the digit photos              --per-digit 100  --test-per-digit 20
+        download  1. downloads the digit photos              --per-digit 100  --test-per-digit 20  --all
         explore   2. pre-training: charts about the dataset
         train     3. trains the network                      --epochs 60  --lr 0.05  --noise 0.2  ...
         evaluate  4. tests the network on the test photos    --noise 0.3  --rotation 20  --thickness -1
@@ -25,7 +25,7 @@ import numpy as np
 import updater
 from i18n import tr
 from neural_net import charts, storage
-from neural_net.data import download_mnist, load_photos, save_photos
+from neural_net.data import download_mnist, load_photos, save_collection
 from neural_net.network import ACTIVATIONS, NeuralNetwork
 from neural_net.training import Trainer, robustness, test_on
 from project import AUTHOR, LAUNCHER, NAME, VERSION
@@ -34,14 +34,16 @@ YES = ("y", "yes", "s", "si", "sì")  # the answers that mean "yes" (in English 
 
 
 def download(args):
-    """1. Downloads MNIST and saves a collection of PNG photos in data/photos/."""
+    """1. Downloads MNIST and saves a collection of PNG photos in data/photos/ (with --all the whole collection)."""
     mnist = download_mnist(progress=lambda fraction: print(
         "\r  " + tr("downloading MNIST: {fraction:.0%}", fraction=fraction), end="", flush=True))
     print()
-    rng = np.random.default_rng(42)
-    for split, per_digit in (("train", args.per_digit), ("test", args.test_per_digit)):
-        save_photos(mnist[f"x_{split}"], mnist[f"y_{split}"], split, per_digit, rng)
-        print("  " + tr("{n} photos saved in {folder}", n=10 * per_digit, folder=storage.PHOTOS_DIR / split))
+    per_digit, test_per_digit = (None, None) if args.all else (args.per_digit, args.test_per_digit)
+    counts = save_collection(mnist, per_digit, test_per_digit, progress=lambda fraction: print(
+        "\r  " + tr("saving the photos: {fraction:.0%}", fraction=fraction), end="", flush=True))
+    print()
+    for split, n in zip(("train", "test"), counts):
+        print("  " + tr("{n} photos saved in {folder}", n=n, folder=storage.PHOTOS_DIR / split))
 
 
 def explore(args):
@@ -123,9 +125,10 @@ def evaluate(args):
 
     points_map = None
     if args.map:  # instead of the confusion matrix, the map of points of the last hidden layer
-        points, axes = charts.project_2d(net.forward(X)[-2], args.map)
+        chosen = charts.map_photos(len(digits))
+        points, axes = charts.project_2d(net.forward(X[chosen])[-2], args.map)
         points_map = {"points": points, "axes": axes, "name": tr("layer {n}", n=len(net.layers) - 2),
-                      "method": args.map}
+                      "method": args.map, "photos": chosen}
     fig = plt.figure(figsize=(15, 8), layout="constrained")
     charts.evaluation(fig, X.reshape(-1, 28, 28), digits, probabilities, robustness(net, photos, digits),
                       {"noise": args.noise, "rotation": args.rotation},
@@ -185,6 +188,7 @@ def main():
     p = commands.add_parser("download", help=tr("1. downloads the digit photos"))
     p.add_argument("--per-digit", type=int, default=100, help=tr("training photos for each digit"))
     p.add_argument("--test-per-digit", type=int, default=20, help=tr("test photos for each digit"))
+    p.add_argument("--all", action="store_true", help=tr("the whole collection: all the 70000 photos of MNIST"))
     p.set_defaults(function=download)
 
     commands.add_parser("explore", help=tr("2. pre-training: charts about the dataset")).set_defaults(function=explore)

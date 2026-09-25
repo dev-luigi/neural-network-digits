@@ -28,7 +28,7 @@ class EvaluationTab(base.Tab):
 
     def __init__(self, window):
         super().__init__(window)
-        self.net = self.photos = self.digits = self.curves = self.probabilities = None
+        self.net = self.photos = self.digits = self.curves = self.probabilities = self.map_photos = None
         self.maps = {}  # point maps already computed: (layer, method, alterations) -> (points, axes)
         self.computing = set()  # maps being computed in the background
         self.ax = self.points = self.background = self.point_label = self.nearest = None
@@ -93,7 +93,7 @@ class EvaluationTab(base.Tab):
             "Each photo has many coordinates (784 pixels, or one per neuron): to draw it, it must be squashed onto "
             "a plane. PCA looks at the cloud from the side where it is most spread out: it is instant and keeps the "
             "large distances, but the groups overlap. t-SNE moves the points until each one has next to it the "
-            "same photos it had close before: it separates the groups well (it takes a couple of seconds), but the "
+            "same photos it had close before: it separates the groups well (it takes a few seconds), but the "
             "distance between different groups has no meaning."))
 
         self.fig, self.canvas = base.figure(right)
@@ -114,10 +114,26 @@ class EvaluationTab(base.Tab):
         except FileNotFoundError:
             return self._empty(tr("Download the photos first in the \"1 · Data\" tab"))
         self.net = NeuralNetwork.load()
-        self.curves = robustness(self.net, self.photos, self.digits)
+        self.map_photos = charts.map_photos(len(self.digits))
         self.maps = {}
+        self._compute_curves()
         self._layer_buttons()
         self._evaluate()
+
+    def _compute_curves(self):
+        """The robustness curves test all the photos 26 times: with many photos it takes a few seconds,
+        so I compute them in the background (meanwhile the curves say "computing...")."""
+        self.curves = {"noise": None, "rotation": None}
+        net, photos, digits = self.net, self.photos, self.digits
+
+        def on_news(kind, data):
+            if kind == "curves" and self.net is net:  # if the network changed in the meantime, they are useless
+                self.curves = data
+                self._draw()
+            elif kind == "error":
+                messagebox.showerror(tr("Robustness curves"), str(data))
+
+        base.in_background(self.frame, lambda send: send("curves", robustness(net, photos, digits)), on_news)
 
     def _layer_names(self):
         """The name of each layer of the network: pixels, hidden layers, output."""
@@ -164,7 +180,7 @@ class EvaluationTab(base.Tab):
         self._draw()
 
     def _draw(self):
-        """Redraws the charts. The t-SNE map takes a couple of seconds: I compute it in the background
+        """Redraws the charts. The t-SNE map takes a few seconds: I compute it in the background
         (meanwhile the map says "computing...") and keep it aside for the next times."""
         if self.net is None:
             return
@@ -172,11 +188,12 @@ class EvaluationTab(base.Tab):
         if self.view.get() == "map":
             layer, method = int(self.layer.get()), self.method.get()
             key = (layer, method, self.alterations)
-            points_map = {"points": None, "axes": None, "name": self._layer_names()[layer], "method": method}
+            points_map = {"points": None, "axes": None, "name": self._layer_names()[layer], "method": method,
+                          "photos": self.map_photos}
             if key in self.maps:
                 points_map["points"], points_map["axes"] = self.maps[key]
             else:
-                self._compute_map(key, self.net.forward(self.X)[layer])
+                self._compute_map(key, self.net.forward(self.X[self.map_photos])[layer])
         self.point_label = self.nearest = None
         self.ax = charts.evaluation(self.fig, self.X.reshape(-1, 28, 28), self.digits, self.probabilities,
                                     self.curves, {"noise": self.alterations[0], "rotation": self.alterations[1]},
@@ -228,18 +245,19 @@ class EvaluationTab(base.Tab):
             self.point_label = None
         self.canvas.restore_region(self.background)
         if nearest is not None:
-            p, true = self.probabilities[nearest], self.digits[nearest]
+            photo = self.map_photos[nearest]  # the map may show only some of the test photos
+            p, true = self.probabilities[photo], self.digits[photo]
             first, second = np.argsort(p)[::-1][:2]
             right = first == true
             text = tr("true {true} → predicted {first} ({p1:.0%})\n2nd choice: {second} ({p2:.0%})",
                       true=true, first=first, p1=p[first], second=second, p2=p[second])
-            self.point_label = charts.point_label(self.ax, self.points[nearest], self.X[nearest].reshape(28, 28),
+            self.point_label = charts.point_label(self.ax, self.points[nearest], self.X[photo].reshape(28, 28),
                                                   text, base.GREEN if right else base.RED)
             self.ax.draw_artist(self.point_label)
             self.frame.explanations.config(text=tr(
                 "Test photo no. {n}, true digit {true}. The network answers {first} with {p1:.0%} confidence "
                 "(second choice: {second}, {p2:.0%}).",
-                n=nearest, true=true, first=first, p1=p[first], second=second, p2=p[second]) + " " + (
+                n=photo, true=true, first=first, p1=p[first], second=second, p2=p[second]) + " " + (
                 tr("Right answer.") if right else
                 tr("Wrong answer: the red line points towards the group of the {first}s, where the network "
                    "\"moved\" it. The farther the point is from its group, the more different the network sees it "
