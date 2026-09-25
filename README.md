@@ -3,7 +3,7 @@
 <p align="center"><strong>Handwritten digit recognition in pure Python + NumPy — watch the network learn, tweak it while it learns, and get your hands inside it.</strong></p>
 
 <p align="center">
-  <img alt="Training tab halfway through a run — live loss curve, accuracy, corrections per layer and weight gaussians" src="docs/training_live.png">
+  <img alt="Training a network live — loss curve, accuracy and weight gaussians — then drawing digits in the Draw & edit tab and watching the network recognise them" src="docs/intro.webp">
 </p>
 
 <p align="center">
