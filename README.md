@@ -3,7 +3,7 @@
 <p align="center"><strong>Handwritten digit recognition in pure Python + NumPy — watch the network learn, tweak it while it learns, and get your hands inside it.</strong></p>
 
 <p align="center">
-  <img alt="Inside the network tab — the math of a layer cell by cell, with the softmax steps and the temperature knob" src="docs/5_inside_the_network.png">
+  <img alt="Training tab halfway through a run — live loss curve, accuracy, corrections per layer and weight gaussians" src="docs/training_live.png">
 </p>
 
 <p align="center">
@@ -86,13 +86,15 @@ The edited network can be saved.
 ![Draw & edit tab — drawing board and network diagram](docs/4_draw.png)
 
 ### 5 · Inside the network — the math, cell by cell
-The math of a layer number by number, with colored cells like in the "LLM visualizers" (screenshot at the top):
+The math of a layer number by number, with colored cells like in the "LLM visualizers":
 - the input values and the weight matrix (or input × weight);
 - the bias, the weighted sum and the activation;
 - for the last layer, the **softmax steps** (z − max, exponential, division by the sum), with
   the **temperature** knob.
 
 When you hover a cell, the connected ones light up and the math is explained.
+
+![Inside the network tab — the math of a layer cell by cell, with the softmax steps](docs/5_inside_the_network.png)
 
 ### Info — version, language, updates
 Author, version, license and credits, language, update check, and a Changelog page with the changes of
