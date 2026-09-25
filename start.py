@@ -28,7 +28,7 @@ from neural_net import charts, storage
 from neural_net.data import download_mnist, load_photos, save_photos
 from neural_net.network import ACTIVATIONS, NeuralNetwork
 from neural_net.training import Trainer, robustness, test_on
-from project import AUTHOR, NAME, VERSION
+from project import AUTHOR, LAUNCHER, NAME, VERSION
 
 YES = ("y", "yes", "s", "si", "sì")  # the answers that mean "yes" (in English and in Italian)
 
@@ -111,7 +111,7 @@ def evaluate(args):
     import matplotlib.pyplot as plt
 
     if not storage.MODEL_FILE.exists():
-        raise SystemExit(tr("No model: train the network first  (start.bat train)"))
+        raise SystemExit(tr("No model: train the network first  ({command})", command=f"{LAUNCHER} train"))
     net = NeuralNetwork.load()
     photos, digits = load_photos("test")
     X, probabilities = test_on(net, photos, args.noise, args.rotation, args.thickness)
@@ -138,7 +138,7 @@ def evaluate(args):
 def draw(args):
     """5. Drawing board and lab in a window of their own."""
     if not storage.MODEL_FILE.exists():
-        raise SystemExit(tr("No model: train the network first  (start.bat train)"))
+        raise SystemExit(tr("No model: train the network first  ({command})", command=f"{LAUNCHER} train"))
     from gui.tab_draw import open_drawing_window
     open_drawing_window()
 

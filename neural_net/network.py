@@ -48,7 +48,7 @@ class NeuralNetwork:
         self.activation = str(activation)
         pairs = list(zip(self.layers[:-1], self.layers[1:]))  # e.g. (784, 64), (64, 32), (32, 10)
         # Random starting weights, drawn from a gaussian as wide as scale * sqrt(gain / inputs):
-        # it is the "He" initialization for ReLUs (gain 2) and "Xavier" for the others (gain 1)
+        # it is the "He" initialization for ReLUs (gain 2) and "LeCun" for the others (gain 1)
         gain = 2 if "relu" in self.activation else 1
         self.weights = [rng.normal(0, init_scale * np.sqrt(gain / n_in), (n_in, n_out)).astype(np.float32)
                         for n_in, n_out in pairs]

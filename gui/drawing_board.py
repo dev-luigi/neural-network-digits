@@ -49,6 +49,8 @@ class DrawingBoard:
         self.board.bind("<Button-1>", self._start_stroke)
         self.board.bind("<B1-Motion>", lambda event: self._stroke(event.x, event.y))
         self.board.bind("<Button-3>", lambda _: self.clear())
+        if self.board.tk.call("tk", "windowingsystem") == "aqua":  # on macOS the right button is Button-2
+            self.board.bind("<Button-2>", lambda _: self.clear())
         base.explain(self.board, tr("Draw a digit with the left mouse button (the right one clears): the network "
                                     "answers while you draw."))
         r = base.row(column, pady=(8, 0))

@@ -9,6 +9,7 @@ from gui import base
 from i18n import tr
 from neural_net import charts, storage
 from neural_net.data import download_mnist, save_photos
+from project import LAUNCHER
 
 
 class DataTab(base.Tab):
@@ -21,13 +22,22 @@ class DataTab(base.Tab):
         base.label(c, tr("28x28 photos of handwritten digits, from the MNIST dataset. Looking at the data before "
                          "training (pre-training) helps to understand what the network will have to learn."))
         self.numbers = base.Tiles(c, ("training photos", "test photos", "black pixels", "average pixel value"),
-                                  columns=2, size=12)
+                                  columns=2, size=12, explanation=tr(
+            "The photos downloaded, and how their pixels are: most of them are black (0), the stroke is white "
+            "(255)."))
 
         base.section(c, tr("Photos to download for each digit"))
         r = base.row(c)
-        self.per_digit = base.NumberField(r, "training", 10, 1000, 100, 10)
-        self.test_per_digit = base.NumberField(r, "test", 5, 500, 20, 5)
-        self.download_button = base.button(c, tr("Download the photos"), self.download, primary=True)
+        self.per_digit = base.NumberField(r, "training", 10, 1000, 100, 10, explanation=tr(
+            "How many photos of each digit the network learns from. More photos = a more accurate network, "
+            "but every epoch takes longer."))
+        self.test_per_digit = base.NumberField(r, "test", 5, 500, 20, 5, explanation=tr(
+            "How many photos of each digit are kept aside to test the network: it never learns from them, so "
+            "they tell how it does with photos it has never seen."))
+        self.download_button = base.button(c, tr("Download the photos"), self.download, primary=True,
+                                           explanation=tr(
+            "Downloads MNIST (only the first time) and saves the chosen photos as PNG in data/photos/, in place "
+            "of the ones already there."))
         self.download_button.pack(fill="x", pady=(12, 6))
         self.progress = ttk.Progressbar(c, maximum=1.0)
         self.progress.pack(fill="x")
@@ -37,11 +47,20 @@ class DataTab(base.Tab):
 
         base.section(c, tr("Start from scratch"))
         base.label(c, tr("Deletes the trained model and the saved charts and, if you want, the photos too. "
-                         "It is the same as:  start.bat reset"))
-        self.reset_button = base.button(c, tr("Reset project..."), self.reset)
+                         "It is the same as:  {command}", command=f"{LAUNCHER} reset"))
+        self.reset_button = base.button(c, tr("Reset project..."), self.reset, explanation=tr(
+            "Before deleting anything it asks whether to delete the photos too. The code and the settings are "
+            "never touched."))
         self.reset_button.pack(fill="x", pady=(10, 0))
 
-        self.fig, self.canvas = base.figure(base.right_area(self.frame))
+        right = base.right_area(self.frame)
+        base.explanation_box(right, self.frame, tr("Move the mouse over a control, a value or a chart "
+                                                   "to find out what it means."), 1220).pack(fill="x", pady=(0, 6))
+        self.fig, self.canvas = base.figure(right)
+        base.explain(self.canvas.get_tk_widget(), tr(
+            "The dataset before training: some photos of each digit, how many photos there are per digit, the "
+            "\"average digit\" (all the photos of a digit on top of each other) and how the pixel values are "
+            "spread out."))
 
     def refresh(self):
         """Numbers and charts of the dataset (or a message if there are no photos)."""

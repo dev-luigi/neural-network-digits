@@ -3,6 +3,8 @@
 
 # .bat files must have Windows line endings, otherwise cmd.exe can read them wrong
 *.bat text eol=crlf
+# .sh files must have Linux line endings, otherwise the shell cannot run them
+*.sh text eol=lf
 
 *.png binary
 

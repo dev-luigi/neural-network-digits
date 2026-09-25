@@ -7,6 +7,17 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.0.1] - 2026-09-25
+
+- **Linux and macOS**: new `start.sh` launcher. The first time it creates a virtual environment in `.venv`
+  with the libraries, and if Tkinter or venv are missing it says what to install.
+- The updates installed from inside the program keep `start.sh` executable.
+- Data tab: every control and chart has its explanation when you hover it with the mouse.
+- The messages that suggest a command show the right one for the system (`start.bat` or `./start.sh`).
+- On macOS the right mouse button clears the drawing board too.
+- The explanation of the initial weights says "LeCun" (for sigmoid and tanh) instead of "Xavier".
+- README: macOS instructions and corrections.
+
 ## [1.0.0] - 2026-09-25
 
 First public version.

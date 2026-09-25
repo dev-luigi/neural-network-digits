@@ -1,4 +1,5 @@
 """Updates: comparing versions, changes from the CHANGELOG, installing a zip."""
+import os
 import shutil
 import zipfile
 from pathlib import Path
@@ -63,6 +64,20 @@ def test_install_replaces_the_program_but_not_data(program, tmp_path):
 
 def test_same_libraries(program, tmp_path):
     assert not updater.install(make_zip(tmp_path / "v2.zip", {**VERSION_2, "requirements.txt": "numpy\n"}))
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows has no executable bit")
+def test_executable_files_stay_executable(program, tmp_path):
+    path = tmp_path / "v2.zip"
+    with zipfile.ZipFile(path, "w") as z:
+        for name, content in VERSION_2.items():
+            z.writestr(f"neural-network-digits-v2.0.0/{name}", content)
+        script = zipfile.ZipInfo("neural-network-digits-v2.0.0/start.sh")
+        script.external_attr = 0o100755 << 16  # like git archive does for the executable files
+        z.writestr(script, "#!/bin/sh\n")
+    updater.install(path.as_uri())
+    assert os.access(program / "start.sh", os.X_OK)
+    assert not os.access(program / "start.py", os.X_OK)
 
 
 @pytest.mark.parametrize("content", [{"../outside.txt": "x"}, {"readme.txt": "no program"}])
