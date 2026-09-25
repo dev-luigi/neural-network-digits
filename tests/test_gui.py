@@ -7,6 +7,7 @@ import pytest
 
 from assistant import knowledge, rules
 from gui import base
+from gui.assistant import WIDTH
 from neural_net import storage
 from project import VERSION
 
@@ -58,18 +59,20 @@ def test_assistant_panel(window):
     panel = window.assistant
     window.root.update()
     width = window.root.winfo_width()
+    room = window.root.winfo_screenwidth() >= width + WIDTH  # small screens (like the ones of the CI) have none
     window.toggle_assistant(True)
     window.root.update()
     assert panel.visible and storage.settings()["assistant"]
     assert "Hi!" in panel.chat.get("1.0", "end")
-    if window.root.winfo_screenwidth() > width:  # the window gets wider, as far as the screen allows
-        assert window.root.winfo_width() > width
+    if room:  # the window gets wider, so the tabs keep their space...
+        assert window.root.winfo_width() == width + WIDTH
     panel.ask("what is the learning rate?")
     assert "How big each correction of the weights is" in panel.chat.get("1.0", "end")
     window.toggle_assistant(False)
     window.root.update()
     assert not panel.visible and not storage.settings()["assistant"]
-    assert window.root.winfo_width() == width
+    if room:  # ...and goes back as it was when the panel closes
+        assert window.root.winfo_width() == width
     assert not window.errors
 
 
@@ -78,7 +81,7 @@ def test_pick_explains_a_control_without_pressing_it(window):
     pressed = []
     button = base.button(window.training_tab.frame, "Try me", lambda: pressed.append(True),
                          explanation="A button to try Pick.")
-    button.pack()
+    button.place(x=0, y=0)  # on top of the tab: packed at the bottom it would not fit on a small screen
     window.root.update()
 
     def click():
