@@ -91,6 +91,10 @@ def install(zip_url, progress=None):
                 if name.startswith(("/", "\\")) or ".." in Path(name).parts:
                     raise ValueError(tr("Invalid zip: {name}", name=name))
             archive.extractall(temp / "extracted")
+            for info in archive.infolist():  # extractall forgets which files are executable (start.sh on Linux)
+                mode = info.external_attr >> 16
+                if mode & 0o111:
+                    (temp / "extracted" / info.filename).chmod(mode & 0o777)
         # The zip contains a folder with the program inside: I recognize it from start.py and project.py
         roots = [p.parent for p in (temp / "extracted").rglob("project.py") if (p.parent / "start.py").exists()]
         if not roots:

@@ -1,5 +1,5 @@
-# CI: at every push to main or develop and at every pull request it runs the tests on Windows and Linux,
-# with the oldest supported Python version and with the newest one.
+# CI: at every push to main or develop and at every pull request it runs the tests on Windows, Linux and
+# macOS, with the oldest supported Python version and with the newest one.
 # release.yml uses it too, before publishing a version.
 name: CI
 
@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
         python: ["3.9", "3.13"]
     runs-on: ${{ matrix.os }}
     env:
@@ -33,8 +33,8 @@ jobs:
       - name: Libraries
         run: python -m pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Test (Windows)
-        if: runner.os == 'Windows'
+      - name: Test (Windows, macOS)
+        if: runner.os != 'Linux'
         run: python -m pytest -v
 
       # On Linux there is no screen: xvfb simulates one so the graphical interface is tested too
@@ -43,3 +43,8 @@ jobs:
         run: |
           sudo apt-get install -y xvfb
           xvfb-run -a python -m pytest -v
+
+      # start.sh as a user runs it: it creates .venv, installs the libraries there and starts the program
+      - name: start.sh (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: ./start.sh --version

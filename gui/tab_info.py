@@ -105,8 +105,7 @@ class InfoTab(base.Tab):
         self.status = base.label(right, tr("Installed version: {version}", version=VERSION), base.TEXT, 10,
                                  width=TEXT_WIDTH)
         r = base.row(right, pady=(8, 0))
-        self.check_button = base.button(r, tr("Check now"), self.check_for_updates, primary=True, explanation=tr(
-            "Asks GitHub which is the latest published version."))
+        self.check_button = base.button(r, tr("Check now"), self.check_for_updates, primary=True)
         self.check_button.pack(side="left")
         base.button(r, tr("All versions"), lambda: webbrowser.open(RELEASES_PAGE)).pack(side="left", padx=6)
         self.at_start = base.checkbox(right, tr("Check for updates at every start"), lambda: (

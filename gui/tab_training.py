@@ -67,7 +67,7 @@ class TrainingTab(base.Tab):
         self.init_scale = base.slider(c, tr("Width of the initial weights"), -1, 0.7, 0.05, 0,
                                       show=lambda v: f"x {base.power(v):g}", explanation=tr(
             "Multiplies the width of the gaussian the initial weights are drawn from. x1 is the \"right\" "
-            "choice (He for relu, Xavier for the others). Try x0.1 (the signal fades out layer after "
+            "choice (He for relu, LeCun for the others). Try x0.1 (the signal fades out layer after "
             "layer) and x5 (the signal explodes), then look at the gaussians and the corrections per layer."))
 
         base.section(c, tr("Optimization  (can be changed during training too)"))

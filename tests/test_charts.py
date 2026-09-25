@@ -26,6 +26,13 @@ def test_project_2d_keeps_the_groups_together(method):
     assert np.mean(group[distances.argmin(axis=1)] == group) > 0.95  # the nearest neighbour is from the same group
 
 
+def test_exploration():
+    photos, digits = RNG.integers(0, 256, (100, 28, 28), dtype=np.uint8), np.arange(100) % 10
+    fig = Figure(layout="constrained")
+    charts.exploration(fig, photos, digits, photos[:30], digits[:30], title="dataset")
+    draw(fig)
+
+
 def test_training_and_chart():
     photos, digits = RNG.integers(0, 256, (100, 28, 28), dtype=np.uint8), np.arange(100) % 10
     trainer = Trainer(hidden=(16, 8), photos_and_digits=(photos, digits))

@@ -13,7 +13,7 @@
   <a href="https://numpy.org/"><img alt="Only NumPy" src="https://img.shields.io/badge/only-NumPy-013243?logo=numpy&logoColor=white"></a>
   <a href="https://matplotlib.org/"><img alt="Tkinter + matplotlib" src="https://img.shields.io/badge/GUI-Tkinter%20%2B%20matplotlib-11557C"></a>
   <a href="https://docs.pytest.org/"><img alt="Tested with pytest" src="https://img.shields.io/badge/tested%20with-pytest-0A9EDC?logo=pytest&logoColor=white"></a>
-  <img alt="Platforms: Windows, Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-0078D6">
+  <img alt="Platforms: Windows, Linux, macOS" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-0078D6">
   <img alt="Languages: English, Italian" src="https://img.shields.io/badge/UI-English%20%7C%20Italiano-06B6D4">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-22C55E"></a>
 </p>
@@ -42,7 +42,8 @@ The interface is available in English and Italian (language selector in the **In
 - **Every step**: downloading the data, exploring it before training, training, evaluating, experimenting.
 - **An interface with 5 tabs**, with dozens of knobs and an explanation for every control (just
   hover it with the mouse).
-- **From the terminal too**: every step is a command.
+- **From the terminal too**: downloading, exploring, training, evaluating and the drawing board are also
+  commands.
 - **Automatic updates** from the GitHub releases, with one click.
 
 ### 1 · Data — the pre-training
@@ -68,8 +69,9 @@ compared with the start) and of the noise.
 
 ### 3 · Evaluation — confusion matrix and points map
 Accuracy on photos never seen before. The photos can be "damaged" (noise, rotation, stroke thickness)
-and you can set a confidence threshold below which the network says "I don't know". There are also the
-robustness curves and the wrong photos.
+and you can set a confidence threshold: below it the network says "I don't know", and you see how many
+photos it still answers and how many of those it gets right. There are also the robustness curves and the
+wrong photos.
 
 The big chart switches from the **confusion matrix** to the **points map**: every photo is a point
 on a plane (PCA or t-SNE, written in NumPy), layer by layer. You can see the digits separate, and when you
@@ -112,33 +114,39 @@ You need **Python 3.9 or newer**. Download the zip of the latest version from th
 **Windows**: double-click **`start.bat`**. The first time it installs the libraries by itself (numpy, pillow,
 matplotlib), then it opens the interface.
 
-**Linux / macOS** (macOS not tested yet, but it only uses standard libraries):
+**Linux and macOS**: open a terminal in the extracted folder and run **`./start.sh`**. The first time it
+creates a virtual environment in `.venv` and installs the libraries there (the Python of the system is not
+touched), then it opens the interface. It needs Tkinter and venv: if one is missing, `start.sh` tells you
+what to install.
 
-```bash
-pip install -r requirements.txt
-python3 start.py
-```
+| System | Once, before the first start |
+|---|---|
+| Ubuntu / Debian | `sudo apt install python3-venv python3-tk` |
+| Fedora | `sudo dnf install python3-tkinter` |
+| Arch | `sudo pacman -S tk` |
+| macOS | Python from [python.org](https://www.python.org/downloads/macos/) (Tkinter included; the Python that comes with macOS has a Tkinter that is too old) |
 
-On Linux you may also need Tkinter: `sudo apt install python3-tk`.
+Tested on Windows 11, Ubuntu 24.04, Debian 12, Fedora 44 and Arch Linux; on macOS the automatic tests
+and `start.sh` run at every push (CI).
 
 **At the first start** the `data/` folder is empty:
 
 1. in the **1 · Data** tab press *Download the photos* (MNIST, ~11 MB, only once);
 2. in the **2 · Training** tab press *Start*: with the starting settings (1000 photos,
-   60 epochs) it takes a few seconds and gets to about 91% on the test photos.
-   With more photos (for example 700 per digit) it goes over 96%.
+   60 epochs) it takes less than half a minute and gets to about 91% on the test photos.
+   With more photos (for example 700 per digit) it gets to about 96%.
 
 ### Updates
 
-At every start the program asks GitHub whether a new version is out (you can turn this off
-in the **Info** tab). If there is one, it shows the changes and offers:
+Every time the interface opens, the program asks GitHub whether a new version is out (you can turn this
+off in the **Info** tab). If there is one, it shows the changes and offers:
 - **Update now**: downloads the new version, replaces the program files and restarts. The
   `data/` folder (photos, model, settings) is not touched, and if something goes wrong
   the old files are put back.
 - **Later** or **Skip this version**.
 
-From the terminal it is `start.bat update`. If you downloaded the project with `git clone`, update
-with `git pull` instead.
+From the terminal it is `start.bat update` (on Linux and macOS `./start.sh update`). If you downloaded the project
+with `git clone`, update with `git pull` instead.
 
 ---
 
@@ -150,16 +158,16 @@ with `git pull` instead.
 | Interface | Tkinter |
 | Charts | matplotlib (loss, gaussians, confusion matrix, PCA / t-SNE map) |
 | Images | Pillow |
-| Dataset | MNIST (downloaded at first start, not in the repository) |
+| Dataset | MNIST (downloaded by the program from the Data tab, not in the repository) |
 | Languages | English / Italian (`i18n.py` + `locales/it.json`) |
 | Tests | pytest (headless on Linux with xvfb) |
-| CI/CD | GitHub Actions — tests on Windows + Linux, automatic releases from tags |
+| CI/CD | GitHub Actions — tests on Windows, Linux and macOS, automatic releases from tags |
 
 ---
 
 ## From the terminal
 
-The same steps, without the interface (on Linux and macOS: `python3 start.py ...`):
+The same steps, without the interface (on Linux and macOS: `./start.sh` instead of `start.bat`):
 
 ```text
 start.bat download --per-digit 100       1. downloads the photos
@@ -187,8 +195,9 @@ start.bat --version                      shows the installed version
 2. **Loss**: the cross-entropy measures how low the probability given to the right digit is.
 3. **Backpropagation**: from the output back to the input, it computes how much every weight contributed
    to the error, and corrects it a little (gradient descent with momentum).
-4. **The gaussians**: at the start the weights are random numbers taken from a gaussian (He or
-   Xavier initialization); during training their distribution widens and changes shape.
+4. **The gaussians**: at the start the weights are random numbers taken from a gaussian (He initialization
+   for relu and leaky relu, LeCun for sigmoid and tanh); during training their distribution widens and
+   changes shape.
 
 ---
 
@@ -198,12 +207,12 @@ start.bat --version                      shows the installed version
   gaussians that widen out of all proportion.
 - **Sigmoid with 2 layers**: it learns more slowly. Look at the strength of the corrections of the first layer.
 - **Initial width x0.1 and x5**: the signal dies out or explodes.
-- **Noise 0 versus noise 0.3 in training**, then compare the two networks in the Evaluation
-  tab with the damaged photos.
+- **Noise 0 versus noise 0.3 in training**: train with noise 0 and try the damaged photos in the
+  Evaluation tab, then train again with noise 0.3 and compare.
 - **Maximum rotation 0 versus 30°**, then evaluate with the rotation at 25°.
 - **Dropout 50%**: the train loss goes up. And the validation one?
-- **Softmax and temperature**: with "Next mistake" find an uncertain photo, then set the temperature
-  to 0.1 and to 10. Does the answer change?
+- **Softmax and temperature**: in the Inside the network tab, with "Next mistake" find an uncertain photo,
+  then set the temperature to 0.1 and to 10. Does the answer change?
 - **Points map layer by layer** (pixels → layer 1 → layer 2 → output): watch the groups
   of digits separate. Then raise the noise: where do the points end up?
 - **In the lab**:
@@ -227,13 +236,16 @@ python -m pytest
 python start.py
 ```
 
+On Linux and macOS let `./start.sh` create the `.venv` with the libraries, then use its Python:
+`.venv/bin/python -m pip install -r requirements-dev.txt` and `.venv/bin/python -m pytest`.
+
 The tests check:
 - backpropagation, compared with the gradient computed numerically;
 - learning with all the activations, and the softmax;
 - the preparation of the photos and all the charts;
 - the install of updates: `data/` is not touched, dangerous zips are refused
   and the old files go back in place if something goes wrong;
-- the release tool;
+- the release tool: the version and the changes in CHANGELOG.md;
 - the translations: every text has its Italian version;
 - the opening of all the tabs of the interface.
 
@@ -246,7 +258,8 @@ The tests check:
 ### CI/CD
 
 - **CI** ([`ci.yml`](.github/workflows/ci.yml)): at every push to `main` / `develop` and at every pull request
-  the tests run on Windows and Linux, with Python 3.9 and 3.13.
+  the tests run on Windows, Linux and macOS, with Python 3.9 and 3.13; on Linux and macOS `start.sh` is
+  tried too.
 - **CD** ([`release.yml`](.github/workflows/release.yml)): when a `vX.Y.Z` tag arrives it runs the tests again and
   checks that the tag matches the version in `project.py` and that `CHANGELOG.md` has the changes.
   Then it creates the zip of the program and publishes the **release** on GitHub, with the changes as its text.
@@ -259,12 +272,17 @@ Versions follow [semantic versioning](https://semver.org/) `MAJOR.MINOR.PATCH`:
 - **MINOR** for new features;
 - **MAJOR** for changes that break something (for example saved models that are no longer compatible).
 
-From the `main` branch:
+On the `develop` branch:
 
 ```bash
 python tools/release.py prepare 1.1.0   # changes the version and opens the paragraph in CHANGELOG.md
-# ...write the changes in CHANGELOG.md...
-python tools/release.py publish         # tests, commit, tag v1.1.0 and push: the CI/CD does the rest
+# ...write the changes in CHANGELOG.md, commit, push and merge develop into main with a pull request...
+```
+
+Then, from the `main` branch:
+
+```bash
+python tools/release.py publish         # tests, tag v1.1.0 and push: the CI/CD does the rest
 ```
 
 ---
@@ -274,12 +292,15 @@ python tools/release.py publish         # tests, commit, tag v1.1.0 and push: th
 ```
 neural-network-digits/
 ├── start.bat              # double-click = graphical interface (Windows)
+├── start.sh               # ./start.sh = graphical interface (Linux, macOS), in its own .venv
 ├── start.py               # the one starting point: interface or a step from the terminal
+├── requirements.txt       # the libraries: numpy, pillow, matplotlib (requirements-dev.txt: pytest)
 ├── project.py             # name, version, author and GitHub addresses of the program
 ├── updater.py             # check and install of new versions from GitHub
 ├── i18n.py                # languages: tr() gives every text in the chosen language
 ├── locales/it.json        # the Italian translations
 ├── CHANGELOG.md           # the changes of every version
+├── LICENSE                # MIT
 ├── neural_net/            # the "brain", without windows
 │   ├── network.py         #   forward, softmax, loss, backpropagation (read this first!)
 │   ├── data.py            #   photos: download, loading, preparation, noise, alterations
