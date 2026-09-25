@@ -39,10 +39,11 @@ class EvaluationTab(base.Tab):
         self.accuracy.pack(anchor="w")
         base.explain(self.accuracy, tr("Accuracy: the percentage of test photos recognized. The test photos "
                                        "have never been used for learning, so they measure how the network "
-                                       "copes with new digits."))
+                                       "copes with new digits."),
+                     tr("Test accuracy"), lambda: self.accuracy.cget("text"))
         self.description = base.label(c)
         self.numbers = base.Tiles(c, ("loss", "average confidence", "errors", "very confident errors"), columns=2,
-                                  size=11, explanation=tr(
+                                  size=11, name=tr("Measures on the test photos"), explanation=tr(
             "Loss: how much it gets wrong on average (it also counts how sure it was). Confidence: the average "
             "probability given to the chosen answer. Very confident errors: wrong photos with more than 90% "
             "confidence, the most dangerous errors."))
@@ -72,7 +73,8 @@ class EvaluationTab(base.Tab):
 
         base.section(c, tr("Accuracy per digit"))
         self.bars = base.Bars(c, length=190, height=22)
-        base.explain(self.bars.canvas, tr("How many photos of each digit are recognized (orange = at least 80%)."))
+        base.explain(self.bars.canvas, tr("How many photos of each digit are recognized (orange = at least 80%)."),
+                     tr("Accuracy per digit"))
 
         right = base.right_area(self.frame)
         base.explanation_box(right, self.frame, tr("Move the mouse over a control, a value or a chart "
@@ -101,7 +103,7 @@ class EvaluationTab(base.Tab):
             "Top left the confusion matrix (rows = true digit, columns = predicted digit; the diagonal holds the "
             "right answers) or the point map (color = true digit, red ring = wrong, the line goes towards the "
             "group of the predicted digit). Below: how the accuracy drops with more noise or more rotation (the "
-            "dashed line is the current choice). On the right the wrong photos."))
+            "dashed line is the current choice). On the right the wrong photos."), tr("Evaluation charts"))
         self.canvas.mpl_connect("draw_event", self._save_background)
         self.canvas.mpl_connect("motion_notify_event", self._on_motion)
 

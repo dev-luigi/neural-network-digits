@@ -2,7 +2,7 @@
 Building blocks shared by all the tabs of the interface:
   - the colors of the dark theme
   - ready-made interface pieces: labels, buttons, sliders, number boxes, tiles...
-  - the explanation box, which describes the control under the mouse
+  - the explanation box, which describes the control under the mouse (the assistant reuses the explanations)
   - the base class of the tabs and a helper for long jobs (without freezing the window)
 """
 import queue
@@ -31,6 +31,8 @@ GREEN = "#5fd39a"
 RED = "#e05d6f"
 FONT = "Segoe UI"
 CONTROLS_WIDTH = 300
+PICK = "Pick"   # the binding tag of the controls with an explanation (see gui/pick.py)
+EXPLAINED = []  # the controls with an explanation: Pick can choose them, the assistant can search them
 
 
 def power(v):
@@ -70,6 +72,8 @@ def apply_theme(root):
     style.map("TNotebook.Tab", background=[("selected", BORDER), ("active", OFF)], foreground=[("selected", TEXT)])
     style.configure("TProgressbar", background=ACCENT, troughcolor=PANEL, bordercolor=PANEL,
                     lightcolor=ACCENT, darkcolor=ACCENT, thickness=8)
+    style.configure("Vertical.TScrollbar", background=BORDER, troughcolor=PANEL, bordercolor=PANEL,
+                    lightcolor=BORDER, darkcolor=BORDER, arrowcolor=TEXT_SOFT)
     matplotlib.rcParams.update({
         "figure.facecolor": BACKGROUND, "savefig.facecolor": BACKGROUND,
         "axes.facecolor": PANEL, "axes.edgecolor": BORDER,
@@ -87,14 +91,19 @@ def explanation_box(parent, container, text, width, lines=3):
     inside `container`. Returns the label: it must then be placed with pack or grid."""
     box = tk.Label(parent, text=text, bg=PANEL, fg=TEXT_SOFT, font=(FONT, 9), justify="left",
                    anchor="nw", wraplength=width - 24, height=lines, padx=12, pady=6)
+    # If the window gets narrower (for example when the assistant opens) the text goes to a new line earlier
+    box.bind("<Configure>", lambda event: box.config(wraplength=min(width, event.width) - 24), add="+")
     container.explanations = box
     return box
 
 
-def explain(widget, text):
-    """When the mouse goes over the widget (or one of its pieces), the explanation box shows `text`."""
+def explain(widget, text, name="", value=None):
+    """When the mouse goes over the widget (or one of its pieces), the explanation box shows `text`.
+    name = the name of the control and value() = what it is worth now: the assistant shows them with Pick."""
     if not text:
         return
+    widget.pick_text, widget.pick_name, widget.pick_value = text, name, value
+    EXPLAINED.append(widget)
 
     def show(_event):
         container = widget
@@ -107,7 +116,30 @@ def explain(widget, text):
     while to_bind:
         w = to_bind.pop()
         w.bind("<Enter>", show, add="+")
+        if PICK not in w.bindtags():  # first of all the tags: while Pick is on, the clicks stop there
+            w.bindtags((PICK,) + w.bindtags())
         to_bind.extend(w.winfo_children())
+
+
+def explained_controls():
+    """The controls with an explanation that still exist (some are recreated when the network changes)."""
+    EXPLAINED[:] = [w for w in EXPLAINED if _exists(w)]
+    return list(EXPLAINED)
+
+
+def _exists(widget):
+    try:
+        return bool(widget.winfo_exists())
+    except tk.TclError:  # its whole window has been closed
+        return False
+
+
+def control_name(widget):
+    """The name of a control with an explanation: the one it was given, or the text written on it."""
+    try:
+        return widget.pick_name or widget.cget("text")
+    except tk.TclError:  # widgets without text, like a frame or a canvas
+        return widget.pick_name
 
 
 # ---------------------------------------------------------------- interface pieces
@@ -193,7 +225,7 @@ def slider(parent, text, from_, to, step, value, on_change=None, show=None, expl
     scale.set(value)
     # Tk calls `command` only when the value changes: the first time I call it myself
     frame.after_idle(lambda: changed(scale.get()))
-    explain(frame, explanation)
+    explain(frame, explanation, text, lambda: value_label.cget("text"))
     return scale
 
 
@@ -211,7 +243,7 @@ class NumberField:
                    font=(FONT, 10), highlightthickness=1, highlightbackground=BORDER,
                    highlightcolor=ACCENT).pack(anchor="w", pady=(2, 0))
         self.var.set(str(value))  # after creating it: otherwise the Spinbox overwrites it
-        explain(cell, explanation)
+        explain(cell, explanation, text, self.var.get)
 
     def value(self):
         try:
@@ -232,7 +264,7 @@ class Choice:
                     relief="flat", bd=0, font=(FONT, 9), width=10)
         menu["menu"].config(bg=PANEL, fg=TEXT, activebackground=ACCENT, activeforeground=BACKGROUND)
         menu.pack(side="right")
-        explain(frame, explanation)
+        explain(frame, explanation, text, self.var.get)
 
     def value(self):
         return self.var.get()
@@ -259,7 +291,8 @@ def choice_buttons(parent, text, options, variable, on_change, explanation=""):
 
     variable.trace_add("write", paint)
     paint()
-    explain(frame, explanation)
+    explain(frame, explanation, text, lambda: next((option_label for option_label, value in options
+                                                    if str(value) == str(variable.get())), ""))
     return frame
 
 
@@ -270,7 +303,7 @@ def checkbox(parent, text, on_change, explanation=""):
                          selectcolor=PANEL, activebackground=BACKGROUND, activeforeground=TEXT,
                          font=(FONT, 9), highlightthickness=0, bd=0, cursor="hand2")
     box.pack(anchor="w", pady=(6, 0))
-    explain(box, explanation)
+    explain(box, explanation, text, lambda: tr("on") if var.get() else tr("off"))
     return var
 
 
@@ -278,7 +311,8 @@ class Tiles:
     """Tiles with a small name and a big value: the "dashboard" of the important numbers.
     The names are English keys: each tile shows the name translated with tr()."""
 
-    def __init__(self, parent, names, columns=None, size=13, explanation=""):
+    def __init__(self, parent, names, columns=None, size=13, explanation="", name=""):
+        """name = what the tiles are as a whole (the assistant shows it with Pick)."""
         self.frame = tk.Frame(parent, bg=BACKGROUND)
         self.frame.pack(fill="x", pady=(8, 0))
         columns = columns or len(names)
@@ -291,7 +325,8 @@ class Tiles:
             self.values[name].pack(anchor="w")
         for c in range(columns):
             self.frame.columnconfigure(c, weight=1, uniform="tiles")
-        explain(self.frame, explanation)
+        explain(self.frame, explanation, name or " · ".join(tr(n) for n in names[:3]),
+                lambda: "   ".join(f"{tr(n)}: {value.cget('text')}" for n, value in self.values.items()))
 
     def show(self, values):
         """values = {name: text}. The tiles not named stay as they are."""

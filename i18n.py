@@ -15,6 +15,7 @@ LANGUAGES = {"en": "English", "it": "Italiano"}
 LOCALES_DIR = Path(__file__).resolve().parent / "locales"
 LANGUAGE = "en"
 _translations = {}
+_originals = {}  # translated text -> English text: the assistant searches in both languages
 
 
 def system_language():
@@ -25,16 +26,22 @@ def system_language():
 
 def use(language):
     """Switch every following tr() to this language."""
-    global LANGUAGE, _translations
+    global LANGUAGE, _translations, _originals
     LANGUAGE = language if language in LANGUAGES else "en"
     file = LOCALES_DIR / f"{LANGUAGE}.json"
     _translations = json.loads(file.read_text(encoding="utf-8")) if LANGUAGE != "en" and file.exists() else {}
+    _originals = {translated: english for english, translated in _translations.items()}
 
 
 def tr(text, **values):
     """The text in the current language, with its {placeholders} filled in: tr("Epoch {n}", n=3)."""
     text = _translations.get(text, text)
     return text.format(**values) if values else text
+
+
+def english(text):
+    """The English original of a text returned by tr() (without {placeholders}); the text itself otherwise."""
+    return _originals.get(text, text)
 
 
 use(storage.settings().get("language") or system_language())

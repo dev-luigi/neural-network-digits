@@ -7,6 +7,22 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.1.0] - 2026-09-25
+
+- **The Assistant**: a panel on the right of the window (F2, or the *Assistant* button at the top right).
+  Ask it questions in English or Italian: "what is overfitting?", "how is it going?", "what should I do
+  now?", "is something wrong?". It answers looking at what is really happening in the open tab (epochs,
+  accuracy, learning rate in use, photos, drawing), tells you where to see each thing and suggests an
+  experiment to try.
+- **Pick** (F1): move the mouse over the controls and click one, and the assistant explains what it does and
+  what it is worth now. While Pick is on, the clicks do not move or start anything.
+- **Hints**: the assistant notices the most common mistakes (a learning rate too high or too low, a network
+  that explodes or does not learn, overfitting, too many inactive neurons, extreme settings, test photos
+  spoiled more than the training ones) and offers a fix you can apply with one click. They can be switched
+  off.
+- It is not an AI model: a small search engine written in NumPy and a few rules. Nothing to download, and it
+  answers instantly.
+
 ## [1.0.3] - 2026-09-25
 
 - For who wants to contribute: CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md and the templates for
