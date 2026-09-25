@@ -99,12 +99,6 @@ When you hover a cell, the connected ones light up and the math is explained.
 
 ![Inside the network tab — the math of a layer cell by cell, with the softmax steps](docs/5_inside_the_network.png)
 
-### Info — version, language, updates
-Author, version, license and credits, language, update check, and a Changelog page with the changes of
-every version.
-
-![Info tab — language selector, update check and changelog](docs/6_info.png)
-
 ---
 
 ## Quick Start
@@ -250,22 +244,6 @@ The tests check:
 - the release tool: the version and the changes in CHANGELOG.md;
 - the translations: every text has its Italian version;
 - the opening of all the tabs of the interface.
-
-### Branches
-
-- **`develop`**: day-to-day work. Every push runs the CI.
-- **`main`**: what is released. Changes arrive from `develop` through a pull request, and releases
-  are published only from here.
-
-### CI/CD
-
-- **CI** ([`ci.yml`](.github/workflows/ci.yml)): at every push to `main` / `develop` and at every pull request
-  the tests run on Windows, Linux and macOS, with Python 3.9 and 3.13; on Linux and macOS `start.sh` is
-  tried too.
-- **CD** ([`release.yml`](.github/workflows/release.yml)): when a `vX.Y.Z` tag arrives it runs the tests again and
-  checks that the tag matches the version in `project.py` and that `CHANGELOG.md` has the changes.
-  Then it creates the zip of the program and publishes the **release** on GitHub, with the changes as its text.
-  The programs already installed offer it at the next start.
 
 ### Publishing a new version
 
