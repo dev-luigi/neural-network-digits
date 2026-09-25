@@ -14,6 +14,9 @@ from i18n import tr
 from neural_net.storage import MNIST_FILE, PHOTOS_DIR
 
 MNIST_URL = "https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz"
+MNIST_SIZE = 11_490_434  # bytes of the file to download
+MNIST_PHOTOS = {"train": 60_000, "test": 10_000}  # the whole collection
+PNG_SIZE, COPY_SIZE = 270, 165  # bytes of each saved photo (measured): its PNG file and its part of the quick copy
 
 
 # ---------------------------------------------------------------- download and saving
@@ -36,15 +39,63 @@ def download_mnist(progress=None):
         return {name: mnist[name] for name in ("x_train", "y_train", "x_test", "y_test")}
 
 
-def save_photos(photos, digits, split, per_digit, rng):
-    """Picks `per_digit` random photos of each digit and saves them as PNG in data/photos/<split>/<digit>/."""
+def collection_size(block=None):
+    """How much the whole collection weighs, in bytes: {"mnist": the MNIST file, "photos": the PNG files and their
+    quick copy, "disk": the disk space it takes}. On disks where every file takes at least one block of `block`
+    bytes (4 KB on Linux and macOS), 70000 small files take much more space than they weigh."""
+    photos = sum(MNIST_PHOTOS.values())
+    size = {"mnist": MNIST_SIZE, "photos": photos * (PNG_SIZE + COPY_SIZE)}
+    size["disk"] = MNIST_SIZE + photos * (COPY_SIZE + max(PNG_SIZE, block or 0))
+    return size
+
+
+def save_collection(mnist, per_digit=None, test_per_digit=None, progress=None):
+    """Saves the training and the test photos: `per_digit` of each digit, None = all of them.
+    The same numbers always give the same photos (the random choice always starts from the same seed).
+    progress(fraction), if given, is called while saving. Returns how many were saved: (training, test)."""
+    rng = np.random.default_rng(42)
+    wanted = {"train": per_digit, "test": test_per_digit}
+    counts = {}
+    for split, n in wanted.items():
+        digits = mnist[f"y_{split}"]
+        counts[split] = len(digits) if n is None else int(np.minimum(np.bincount(digits), n).sum())
+    total, saved_before = sum(counts.values()), 0
+
+    def report(saved):  # from "photos saved of this split" to "fraction of all the photos to save"
+        if progress:
+            progress((saved_before + saved) / total)
+
+    for split, n in wanted.items():
+        save_photos(mnist[f"x_{split}"], mnist[f"y_{split}"], split, n, rng, report)
+        saved_before += counts[split]
+    report(0)  # = 100%
+    return counts["train"], counts["test"]
+
+
+def save_photos(photos, digits, split, per_digit, rng, progress=None):
+    """Picks `per_digit` random photos of each digit (None = all of them) and saves them as PNG in
+    data/photos/<split>/<digit>/, plus a quick copy of them all in data/photos/<split>.npz (see load_photos).
+    progress(photos saved so far), if given, is called every 500 photos."""
     folder = PHOTOS_DIR / split
     shutil.rmtree(folder, ignore_errors=True)  # away with the old photos
+    chosen = []
     for digit in range(10):
         (folder / str(digit)).mkdir(parents=True)
         available = np.flatnonzero(digits == digit)
-        for index in rng.choice(available, min(per_digit, len(available)), replace=False):
-            Image.fromarray(photos[index]).save(folder / str(digit) / f"mnist_{index:05d}.png")
+        if per_digit is not None:
+            available = np.sort(rng.choice(available, min(per_digit, len(available)), replace=False))
+        chosen.append(available)
+    chosen = np.concatenate(chosen)  # digit after digit, in the order in which load_photos reads them
+    for n, index in enumerate(chosen):
+        Image.fromarray(photos[index]).save(folder / str(digits[index]) / f"mnist_{index:05d}.png")
+        if progress and n % 500 == 0:
+            progress(n)
+    np.savez_compressed(quick_copy(split), photos=photos[chosen], digits=digits[chosen].astype(np.int64))
+
+
+def quick_copy(split):
+    """data/photos/<split>.npz: all the photos of the folder in a single file, read in a moment."""
+    return PHOTOS_DIR / f"{split}.npz"
 
 
 def count_photos(split):
@@ -54,15 +105,25 @@ def count_photos(split):
 
 def load_photos(split):
     """Reads the "train" or "test" photos.
-    Returns (photos, digits): photos is an array [N, 28, 28] with values 0-255, digits says which digit each one is."""
+    Returns (photos, digits): photos is an array [N, 28, 28] with values 0-255, digits says which digit each one is.
+    Reading thousands of PNG files takes minutes, so it reads the quick copy saved together with them;
+    only if photos were added or deleted by hand afterwards it reads the PNG files (and redoes the copy)."""
+    folder, copy = PHOTOS_DIR / split, quick_copy(split)
+    folders = [folder] + [folder / str(digit) for digit in range(10)]
+    if copy.exists() and folder.exists() and all(copy.stat().st_mtime >= f.stat().st_mtime
+                                                  for f in folders if f.exists()):
+        with np.load(copy) as saved:
+            return saved["photos"], saved["digits"]
     photos, digits = [], []
     for digit in range(10):
-        for file in sorted((PHOTOS_DIR / split / str(digit)).glob("*.png")):
+        for file in sorted((folder / str(digit)).glob("*.png")):
             photos.append(np.array(Image.open(file).convert("L")))
             digits.append(digit)
     if not photos:
-        raise FileNotFoundError(tr("No photos in {folder}: download them first.", folder=PHOTOS_DIR / split))
-    return np.stack(photos), np.array(digits)
+        raise FileNotFoundError(tr("No photos in {folder}: download them first.", folder=folder))
+    photos, digits = np.stack(photos), np.array(digits)
+    np.savez_compressed(copy, photos=photos, digits=digits)
+    return photos, digits
 
 
 # ---------------------------------------------------------------- preparation for the network

@@ -17,6 +17,7 @@ from i18n import tr
 
 DIGIT_COLORS = colormaps["tab10"](np.arange(10))  # one color for each digit in the map of points
 ERROR_RED = "#e05d6f"
+MAP_PHOTOS = 1000  # at most this many photos on the map of points (see map_photos)
 # Cells "inside the network": blue = negative, dark = zero, orange = positive
 VALUE_CMAP = LinearSegmentedColormap.from_list("values", ["#4da3ff", "#1d2129", "#ffb347"])
 
@@ -188,9 +189,11 @@ def _noise_gaussian(ax, sigma):
 
 def evaluation(fig, photos, digits, probabilities, curves=None, current=None, title=None, points_map=None):
     """Confusion matrix (or map of points), robustness curves (if any) and the wrong photos.
+    curves = {"noise": ..., "rotation": ...} (a curve = None: still being computed).
     current = {"noise": ..., "rotation": ...}: the alterations in use, marked on the curves.
-    points_map = {"points", "axes", "name", "method"}: if given, it draws the map of points instead of the matrix
-    (with "points" = None it writes that it is still computing it). Returns the big chart at the top left."""
+    points_map = {"points", "axes", "name", "method", "photos"}: if given, it draws the map of points instead of the
+    matrix (with "points" = None it writes that it is still computing it); "photos" = which photos the points are
+    (see map_photos). Returns the big chart at the top left."""
     fig.clear()
     if title:
         fig.suptitle(title, fontsize=14, fontweight="bold")
@@ -200,14 +203,20 @@ def evaluation(fig, photos, digits, probabilities, curves=None, current=None, ti
     if curves:
         axes = left.subplot_mosaic([["confusion", "confusion"], ["noise", "rotation"]], height_ratios=[2.2, 1])
         for name, label in (("noise", tr("noise σ")), ("rotation", tr("rotation (degrees)"))):
-            _robustness_curve(axes[name], *curves[name], label, (current or {}).get(name))
+            if curves[name] is None:
+                axes[name].text(0.5, 0.5, tr("computing..."), transform=axes[name].transAxes, ha="center",
+                                va="center", alpha=0.7)
+                axes[name].set(xticks=[], yticks=[], xlabel=label)
+            else:
+                _robustness_curve(axes[name], *curves[name], label, (current or {}).get(name))
         ax = axes["confusion"]
     else:
         ax = left.subplots()
     big = ax
 
     if points_map:
-        _points_map(ax, points_map, digits, predicted)
+        chosen = points_map.get("photos", np.arange(len(digits)))
+        _points_map(ax, points_map, digits[chosen], predicted[chosen], len(digits))
     else:
         # Confusion matrix: rows = true digit, columns = digit said by the network
         confusion = np.zeros((10, 10), dtype=int)
@@ -249,6 +258,14 @@ def _robustness_curve(ax, values, accuracies, name, current):
 
 
 # ---------------------------------------------------------------- map of points
+
+def map_photos(n):
+    """Which of the n test photos go on the point map: all of them, or MAP_PHOTOS chosen at random (always the
+    same ones). t-SNE compares every pair of photos: with thousands of photos it would take minutes."""
+    if n <= MAP_PHOTOS:
+        return np.arange(n)
+    return np.sort(np.random.default_rng(0).choice(n, MAP_PHOTOS, replace=False))
+
 
 def project_2d(values, method="t-SNE"):
     """Squashes onto a plane points that have many coordinates (one per pixel or per neuron),
@@ -306,11 +323,14 @@ def _tsne(X, start, perplexity=30, steps=350):
     return Y
 
 
-def _points_map(ax, points_map, digits, predicted):
+def _points_map(ax, points_map, digits, predicted, all_photos):
     """Each test photo is a point colored with its true digit. The wrong photos have the red ring
     and a line towards the center of the group of the digit the network said: you can see "where" it gets confused."""
     ax.set_title(tr("Map of points · {name} · {method}\neach point is a test photo: close = the network sees "
                     "them as similar", name=points_map["name"], method=points_map["method"]), fontsize=10)
+    if len(digits) < all_photos:
+        ax.text(0.99, 0.01, tr("{shown} photos out of {total}, chosen at random", shown=len(digits), total=all_photos),
+                transform=ax.transAxes, ha="right", va="bottom", fontsize=7, alpha=0.7)
     points = points_map["points"]
     if points is None:
         ax.text(0.5, 0.5, tr("computing the map ({method})...", method=points_map["method"]),

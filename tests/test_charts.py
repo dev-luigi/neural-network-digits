@@ -46,14 +46,24 @@ def test_training_and_chart():
 def test_evaluation_with_matrix_and_with_map():
     photos, digits = RNG.random((40, 28, 28)), np.arange(40) % 10
     probabilities = RNG.dirichlet(np.ones(10), 40)
+    curves = {"noise": (np.linspace(0, 0.6, 13), RNG.random(13)), "rotation": None}  # rotation: still computing
     for points_map in (None,
                        {"points": RNG.normal(size=(40, 2)), "axes": ["a", "b"], "name": "layer 2", "method": "PCA"},
+                       {"points": RNG.normal(size=(10, 2)), "axes": ["a", "b"], "name": "layer 2", "method": "PCA",
+                        "photos": np.arange(0, 40, 4)},  # only some of the photos on the map
                        {"points": None, "axes": None, "name": "layer 2", "method": "t-SNE"}):
         fig = Figure(layout="constrained")
-        ax = charts.evaluation(fig, photos, digits, probabilities, points_map=points_map)
+        ax = charts.evaluation(fig, photos, digits, probabilities, curves, points_map=points_map)
         draw(fig)
         if points_map and points_map["points"] is not None:
             charts.point_label(ax, points_map["points"][0], photos[0], "true 0", "red")
+
+
+def test_map_photos():
+    assert charts.map_photos(200).tolist() == list(range(200))
+    chosen = charts.map_photos(10_000)  # t-SNE on 10,000 photos would take minutes
+    assert len(set(chosen)) == charts.MAP_PHOTOS and chosen.max() < 10_000
+    assert np.array_equal(chosen, charts.map_photos(10_000))  # always the same ones
 
 
 def test_layer_view():
