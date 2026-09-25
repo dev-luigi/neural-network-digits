@@ -7,6 +7,13 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.0.3] - 2026-09-25
+
+- For who wants to contribute: CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md and the templates for
+  issues and pull requests.
+- README: the Info, Branches and CI/CD sections are gone.
+- The zip of the update no longer contains the README animation (7.5 MB less to download).
+
 ## [1.0.2] - 2026-09-25
 
 - **The whole collection**: in the Data tab the new *Download the whole collection...* button saves all the
