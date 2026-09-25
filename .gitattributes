@@ -1,0 +1,14 @@
+# Line endings normalized in the repository
+* text=auto
+
+# .bat files must have Windows line endings, otherwise cmd.exe can read them wrong
+*.bat text eol=crlf
+
+*.png binary
+
+# Left out of the release zip (only developers need them)
+.github/ export-ignore
+tests/ export-ignore
+tools/ export-ignore
+requirements-dev.txt export-ignore
+pyproject.toml export-ignore

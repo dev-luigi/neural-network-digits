@@ -1,0 +1,2 @@
+# Only for developers: the tests (python -m pytest)
+pytest>=7

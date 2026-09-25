@@ -1,0 +1,19 @@
+# Everything the program creates: downloaded photos (~11 MB), trained model, charts, settings.
+# It is created again from the interface (tabs 1 and 2) or with  start.bat download / start.bat train
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Editor and system
+.vscode/
+.idea/
+*.code-workspace
+Thumbs.db
+Desktop.ini
+.DS_Store

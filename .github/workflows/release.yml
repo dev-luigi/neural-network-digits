@@ -1,0 +1,45 @@
+# CD: when a vX.Y.Z tag arrives (created by  python tools/release.py publish)
+#   1. runs all the tests again (ci.yml)
+#   2. checks that the tag matches the version in project.py and that CHANGELOG.md has the changes
+#   3. creates the zip of the program and publishes the release on GitHub, with the changes as its text
+# The programs already installed find the release at the next start and offer the update.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Does the tag match the version, and are the changes written?
+        run: python tools/release.py check "$GITHUB_REF_NAME"
+
+      - name: Changes of the version (the text of the release)
+        run: python tools/release.py notes "$GITHUB_REF_NAME" > notes.md
+
+      - name: Zip of the program
+        run: >
+          git archive --format=zip --prefix="neural-network-digits-$GITHUB_REF_NAME/"
+          -o "neural-network-digits-$GITHUB_REF_NAME.zip" HEAD
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" "neural-network-digits-$GITHUB_REF_NAME.zip"
+          --title "Version ${GITHUB_REF_NAME#v}" --notes-file notes.md --verify-tag

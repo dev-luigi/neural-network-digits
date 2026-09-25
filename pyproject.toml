@@ -1,0 +1,4 @@
+# Only the test configuration: the program version is in project.py
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
