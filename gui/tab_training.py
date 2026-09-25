@@ -71,8 +71,10 @@ class TrainingTab(base.Tab):
             "layer) and x5 (the signal explodes), then look at the gaussians and the corrections per layer."))
 
         base.section(c, tr("Optimization  (can be changed during training too)"))
-        base.slider(c, tr("Learning rate"), -4, 0, 0.05, np.log10(0.05),
-                    lambda v: self._set(lr=base.power(v)), show=lambda v: f"{base.power(v):g}", explanation=tr(
+        s = self.sliders = {"init_scale": self.init_scale}  # the controls the assistant can move (set_control)
+        s["lr"] = base.slider(c, tr("Learning rate"), -4, 0, 0.05, np.log10(0.05),
+                              lambda v: self._set(lr=base.power(v)), show=lambda v: f"{base.power(v):g}",
+                              explanation=tr(
             "The learning rate: how big each correction of the weights is. Too low: it learns very slowly. "
             "Too high: the loss jumps, the neurons switch off forever or the weights explode."))
         cosine = base.checkbox(c, tr("Slow down towards the end (cosine decay)"),
@@ -82,19 +84,19 @@ class TrainingTab(base.Tab):
             "to fix the details. It usually gives a few more points of accuracy. The dashboard shows the "
             "rate actually used."))
         cosine.set(True)
-        base.slider(c, "Momentum", 0, 0.99, 0.01, 0.9, lambda v: self._set(momentum=v),
-                    show=lambda v: f"{v:.2f}", explanation=tr(
+        s["momentum"] = base.slider(c, "Momentum", 0, 0.99, 0.01, 0.9, lambda v: self._set(momentum=v),
+                                    show=lambda v: f"{v:.2f}", explanation=tr(
             "How much \"momentum\" the corrections keep: with 0.9 each step keeps 90% of the direction "
             "of the previous steps. It helps to go down faster; too high makes it oscillate. 0 = plain "
             "gradient descent."))
-        base.slider(c, tr("L2 regularization"), -7, -1, 0.25, -4,
-                    lambda v: self._set(l2=0 if v <= -7 else base.power(v)),
-                    show=lambda v: tr("none") if v <= -7 else f"{base.power(v):g}", explanation=tr(
+        s["l2"] = base.slider(c, tr("L2 regularization"), -7, -1, 0.25, -4,
+                              lambda v: self._set(l2=0 if v <= -7 else base.power(v)),
+                              show=lambda v: tr("none") if v <= -7 else f"{base.power(v):g}", explanation=tr(
             "Weight decay: at every step all the weights are pushed a little towards zero. Small weights = a "
             "\"simpler\" network, which usually generalizes better. Too much L2 prevents it from learning "
             "(watch the gaussians shrink)."))
-        base.slider(c, "Dropout", 0, 0.8, 0.05, 0, lambda v: self._set(dropout=v),
-                    show=lambda v: f"{v:.0%}", explanation=tr(
+        s["dropout"] = base.slider(c, "Dropout", 0, 0.8, 0.05, 0, lambda v: self._set(dropout=v),
+                                   show=lambda v: f"{v:.0%}", explanation=tr(
             "At every step it randomly switches off this percentage of hidden neurons, so the network learns not to "
             "depend on a few neurons. The train loss goes up, but the validation often improves. When the "
             "network answers (prediction) no neuron is switched off."))
@@ -107,19 +109,20 @@ class TrainingTab(base.Tab):
             "(it is the last chart at the bottom). A little noise makes the network more robust; too much prevents "
             "it from seeing the digits."))
         self.noise_slider.bind("<ButtonRelease-1>", lambda _: self._redraw())
-        base.slider(c, tr("Maximum rotation"), 0, 45, 1, 12, lambda v: self._set(rotation=v),
-                    show=lambda v: f"± {v:.0f}°", explanation=tr(
+        s["noise"] = self.noise_slider
+        s["rotation"] = base.slider(c, tr("Maximum rotation"), 0, 45, 1, 12, lambda v: self._set(rotation=v),
+                                    show=lambda v: f"± {v:.0f}°", explanation=tr(
             "Data augmentation: at every epoch each photo is rotated randomly up to this angle. The network sees "
             "digits that are always a bit different and learns the shape, not the single pixels."))
-        base.slider(c, tr("Maximum shift"), 0, 5, 1, 2, lambda v: self._set(shift=int(v)),
-                    show=lambda v: f"± {v:.0f} px", explanation=tr(
+        s["shift"] = base.slider(c, tr("Maximum shift"), 0, 5, 1, 2, lambda v: self._set(shift=int(v)),
+                                 show=lambda v: f"± {v:.0f} px", explanation=tr(
             "Data augmentation: each photo is shifted randomly up to this many pixels, horizontally and "
             "vertically."))
         self.preview = tk.Label(c, bg=base.BACKGROUND, cursor="hand2")
         self.preview.pack(anchor="w", pady=(8, 0))
         self.preview.bind("<Button-1>", lambda _: self._show_preview())
         base.explain(self.preview, tr("Eight photos as the network sees them during training, with the chosen "
-                                      "rotation, shift and noise. Click to pick new ones."))
+                                      "rotation, shift and noise. Click to pick new ones."), tr("Photo preview"))
 
         base.section(c, tr("Duration"))
         r = base.row(c)
@@ -150,7 +153,7 @@ class TrainingTab(base.Tab):
 
         # On the right: the dashboard with the numbers of the last epoch, the status, the explanations and the charts
         right = base.right_area(self.frame)
-        self.dashboard = base.Tiles(right, DASHBOARD, explanation=tr(
+        self.dashboard = base.Tiles(right, DASHBOARD, name=tr("Numbers of the last epoch"), explanation=tr(
             "The numbers of the last epoch. Loss = how much it gets wrong (lower is better). Accuracy = how many photos "
             "it guesses right. \"train\" are the photos it learns from, \"validation\" the ones it never sees while "
             "learning: if train improves and validation does not, it is learning by heart (overfitting)."))
@@ -162,7 +165,8 @@ class TrainingTab(base.Tab):
             "At the top: loss curve, accuracy, strength of the corrections (gradient) of each layer with the "
             "percentage of inactive neurons, and what each neuron of the first layer looks for (red = pixels that "
             "switch it on, blue = pixels that switch it off). At the bottom: the gaussians, that is how the "
-            "weights of each layer are distributed now (orange) compared to the beginning (dashed)."))
+            "weights of each layer are distributed now (orange) compared to the beginning (dashed)."),
+            tr("Training charts"))
 
     # ------------------------------------------------------------------ controls
 
@@ -171,6 +175,20 @@ class TrainingTab(base.Tab):
         self.params.update(values)
         if {"noise", "rotation", "shift"} & values.keys():
             self._show_preview()
+
+    def set_control(self, name, value):
+        """Moves a control as if you had done it with the mouse (the assistant uses it to apply a hint).
+        name = one of self.sliders or "batch"; value = the real value, for example 0.05 for the learning rate."""
+        if name == "batch":
+            return self.batch.var.set(str(int(value)))
+        logarithmic = name in ("lr", "l2", "init_scale")  # these sliders move on the exponent of 10
+        self.sliders[name].set(np.log10(value) if logarithmic else value)
+
+    def chosen_architecture(self):
+        """The architecture chosen in the controls (it applies from the next "New network")."""
+        return {"hidden": [n for n in (self.neurons1.value(), self.neurons2.value()) if n > 0],
+                "activation": self.activation.value(), "init_scale": base.power(self.init_scale.get()),
+                "seed": self.seed.value()}
 
     def refresh(self):
         """When the photos change: starts again with a new network (or a message if there are no photos)."""

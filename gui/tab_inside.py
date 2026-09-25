@@ -46,7 +46,8 @@ class InsideTab(base.Tab):
         base.button(r, tr("Next mistake"), self._next_mistake, explanation=tr(
             "The next photo that the network gets wrong: look in the softmax which digits compete for the answer."
         )).pack(side="left", padx=6)
-        self.tiles = base.Tiles(c, ("true digit", "answer", "confidence"), size=13, explanation=tr(
+        self.tiles = base.Tiles(c, ("true digit", "answer", "confidence"), size=13, name=tr("Answer for this photo"),
+                                explanation=tr(
             "The answer of the real network (temperature 1) for this photo."))
 
         base.section(c, tr("What to look at"))
@@ -73,6 +74,11 @@ class InsideTab(base.Tab):
         base.explanation_box(right, self.frame, tr("Move the mouse over a cell to see its math."),
                              1220).pack(fill="x", pady=(0, 6))
         self.fig, self.canvas = base.figure(right)
+        base.explain(self.canvas.get_tk_widget(), tr(
+            "At the top the weight matrix (one row for every value that goes in, one column for every neuron) and, on "
+            "the left, the values that go in. Below, lined up with the columns: bias, weighted sum z and activation; "
+            "in the last layer the steps of the softmax. Move the mouse over a cell to see its math."),
+            tr("The math of the layer"))
         self.canvas.mpl_connect("draw_event", self._save_background)
         self.canvas.mpl_connect("motion_notify_event", self._on_motion)
 

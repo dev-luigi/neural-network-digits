@@ -52,7 +52,7 @@ class DrawingBoard:
         if self.board.tk.call("tk", "windowingsystem") == "aqua":  # on macOS the right button is Button-2
             self.board.bind("<Button-2>", lambda _: self.clear())
         base.explain(self.board, tr("Draw a digit with the left mouse button (the right one clears): the network "
-                                    "answers while you draw."))
+                                    "answers while you draw."), tr("Draw a digit"))
         r = base.row(column, pady=(8, 0))
         base.button(r, tr("Clear"), self.clear, explanation=tr("Cleans the board (also with the right button, "
                                                                "Delete or Esc).")).pack(side="left", expand=True,
@@ -73,7 +73,8 @@ class DrawingBoard:
         self.preview.pack(anchor="w")
         base.explain(self.preview, tr("The drawing after the preparation: cropped, shrunk to 20x20 and centered "
                                       "on 28x28 like the MNIST photos (plus the noise, if any). These 784 pixels "
-                                      "are the input of the network."))
+                                      "are the input of the network."),
+                     tr("What the network receives (28 x 28 pixels)"))
         self.info = base.label(column, "", width=SIDE)
 
         # 2nd column: the network diagram
@@ -86,7 +87,7 @@ class DrawingBoard:
             "Every circle is a neuron: the more orange it is, the more active it is with this drawing. The lines "
             "are the connections that matter most right now (neuron output x weight): orange ones push towards "
             "switching on, blue ones hold it back. Click a neuron to examine and change it; the switched off ones "
-            "have a red border."))
+            "have a red border."), tr("The neural network at work"))
 
         # 3rd column: the answer
         column = self._column(2, tr("Answer of the network"))
@@ -97,7 +98,8 @@ class DrawingBoard:
         self.confidence.pack(pady=(0, 12))
         self.bars = base.Bars(column, length=140, height=32)
         base.explain(self.bars.canvas, tr("The 10 probabilities of the last layer (softmax): they always add up "
-                                          "to 100%. The answer is the digit with the highest probability."))
+                                          "to 100%. The answer is the digit with the highest probability."),
+                     tr("Answer of the network"), lambda: self.confidence.cget("text"))
 
         # Shortcut keys: they work only when the board is visible (that is, when its tab is open)
         window = parent.winfo_toplevel()
