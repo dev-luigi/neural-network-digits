@@ -32,6 +32,7 @@ class Lab:
         self.modified = None                  # the copy with all the changes applied
         self.changes = {}                     # (layer, neuron) -> {"bias": +x, "scale": x, "off": yes/no}
         self.test = self.X_test = self.original_measures = None
+        self.accuracies = None                # test accuracy (original, modified): the assistant reads it
         self._images = []                     # drawn images: they must be kept, otherwise Tkinter deletes them
         board.on_click = self.select
         board.on_change = self._show_neuron
@@ -54,7 +55,8 @@ class Lab:
                                    show=lambda v: tr("{v:.0%} of the weights at zero", v=v), explanation=tr(
             "Sets to zero this percentage of the smallest weights (in absolute value) of every layer. Many "
             "networks still work well even without most of their weights: how far does yours hold up?"))
-        self.measures = base.Tiles(column, MEASURES, columns=1, size=11, explanation=tr(
+        self.measures = base.Tiles(column, MEASURES, columns=1, size=11, name=tr("Original network → modified network"),
+                                   explanation=tr(
             "Measures on all the test photos: original network → modified network. This way you see the effect "
             "of the changes on all the digits, not only on the drawn one."))
         r = base.row(column, pady=(2, 0))
@@ -68,7 +70,8 @@ class Lab:
         base.section(column, tr("Selected neuron"))
         self.neuron_name = base.label(column, "", base.TEXT, 10, True, width=300)
         self.neuron_values = base.Tiles(column, ("weighted sum z", "output a", "bias", "incoming weights"),
-                                        columns=2, size=10, explanation=tr(
+                                        columns=2, size=10, name=tr("Values of the selected neuron"),
+                                        explanation=tr(
             "z = sum of (input x weight) + bias: it is what the neuron \"feels\". a = activation(z): "
             "what the neuron sends forward. For the output neurons a is the probability of the digit."))
         self.weights_drawing = tk.Canvas(column, width=300, height=128, bg=base.BACKGROUND, highlightthickness=0)
@@ -76,7 +79,8 @@ class Lab:
         base.explain(self.weights_drawing, tr(
             "First layer: on the left the 784 weights of the neuron redrawn as an image (orange = pixels that "
             "switch it on, blue = that switch it off); on the right weights x drawing, that is what it really "
-            "finds in your digit. Later layers: the contribution of every neuron of the layer before."))
+            "finds in your digit. Later layers: the contribution of every neuron of the layer before."),
+            tr("Weights of the selected neuron"))
         self.bias = base.slider(column, tr("Shift the bias"), -5, 5, 0.05, 0, self._neuron_changed,
                                 show=lambda v: f"{v:+.2f}", explanation=tr(
             "Adds this value to the bias of the selected neuron: with a higher bias it switches on more "
@@ -150,8 +154,10 @@ class Lab:
         self.board.switched_off = {who for who, m in self.changes.items() if m["off"]}
         self.board.set_net(self.modified)
         if self.original_measures is None:
+            self.accuracies = None
             return self.measures.show({name: tr("test photos needed") for name in MEASURES})
         (acc0, loss0, conf0), (acc, loss, conf) = self.original_measures, self._measure(self.modified)
+        self.accuracies = (float(acc0), float(acc))
         self.measures.show({"test accuracy": f"{acc0:.1%}   →   {acc:.1%}",
                             "test loss": f"{loss0:.3f}   →   {loss:.3f}",
                             "mean confidence": f"{conf0:.0%}   →   {conf:.0%}"})

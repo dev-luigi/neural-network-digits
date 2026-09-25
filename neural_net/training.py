@@ -33,6 +33,7 @@ class Trainer:
         self.X_val, self.Y_val = normalize(photos[order[:n_val]]), one_hot(self.val_digits)
 
         self.net = NeuralNetwork((784, *hidden, 10), activation, init_scale, seed)
+        self.init_scale = init_scale
         self.initial_weights = [W.copy() for W in self.net.weights]  # to compare the gaussians
         # All the measurements, epoch after epoch (the charts need them)
         self.history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": [], "lr": [],

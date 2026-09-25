@@ -19,7 +19,8 @@ MNIST_FILE = PHOTOS_DIR / "mnist.npz"
 MODEL_FILE = DATA_DIR / "model.npz"
 CHARTS_DIR = DATA_DIR / "charts"
 SETTINGS_FILE = DATA_DIR / "settings.json"
-DEFAULT_SETTINGS = {"check_updates": True, "skipped_version": "", "language": ""}
+DEFAULT_SETTINGS = {"check_updates": True, "skipped_version": "", "language": "",
+                    "assistant": False, "hints": True}  # assistant = the panel is open
 
 
 def settings():

@@ -23,7 +23,7 @@ class DataTab(base.Tab):
         base.label(c, tr("28x28 photos of handwritten digits, from the MNIST dataset. Looking at the data before "
                          "training (pre-training) helps to understand what the network will have to learn."))
         self.numbers = base.Tiles(c, ("training photos", "test photos", "black pixels", "average pixel value"),
-                                  columns=2, size=12, explanation=tr(
+                                  columns=2, size=12, name=tr("The photos in numbers"), explanation=tr(
             "The photos downloaded, and how their pixels are: most of them are black (0), the stroke is white "
             "(255)."))
 
@@ -65,7 +65,7 @@ class DataTab(base.Tab):
         base.explain(self.canvas.get_tk_widget(), tr(
             "The dataset before training: some photos of each digit, how many photos there are per digit, the "
             "\"average digit\" (all the photos of a digit on top of each other) and how the pixel values are "
-            "spread out."))
+            "spread out."), tr("Dataset charts"))
 
     def refresh(self):
         """Numbers and charts of the dataset (or a message if there are no photos)."""

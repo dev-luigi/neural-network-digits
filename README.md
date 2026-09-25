@@ -42,6 +42,8 @@ The interface is available in English and Italian (language selector in the **In
 - **Every step**: downloading the data, exploring it before training, training, evaluating, experimenting.
 - **An interface with 5 tabs**, with dozens of knobs and an explanation for every control (just
   hover it with the mouse).
+- **A built-in assistant, without AI models**: it answers questions looking at the real state of the network,
+  explains any control you click and tells you when something looks wrong, with a fix to apply in one click.
 - **From the terminal too**: downloading, exploring, training, evaluating and the drawing board are also
   commands.
 - **Automatic updates** from the GitHub releases, with one click.
@@ -98,6 +100,29 @@ The math of a layer number by number, with colored cells like in the "LLM visual
 When you hover a cell, the connected ones light up and the math is explained.
 
 ![Inside the network tab — the math of a layer cell by cell, with the softmax steps](docs/5_inside_the_network.png)
+
+### The assistant — ask, pick, hints
+A side panel (**F2**, or the *Assistant* button at the top right) that knows the program and sees what is
+happening in it:
+
+- **Questions**, in English or Italian: "what is overfitting?", "how is it going?", "what should I do now?",
+  "is something wrong?". The answers use the real state of the open tab: the epochs done, the accuracy, the
+  learning rate in use, the photos downloaded, the drawing on the board. Every answer also says where to see
+  that thing in the program and suggests an experiment to try.
+- **Pick** (**F1**): hover the controls and they get an orange frame; click one and the assistant explains what it
+  does and what it is worth now. While Pick is on, the clicks do not reach the controls, so nothing starts by
+  mistake.
+- **Hints** (they can be switched off): the assistant notices the most common mistakes, like a learning rate
+  that is too high (the network explodes or does not learn), overfitting, too many inactive neurons, extreme
+  settings, or test photos spoiled much more than the training ones. Each hint has an *Apply* link that
+  fixes it in one click and a *Why?* link that explains the concept behind it.
+
+It is not a language model, on purpose: the answers come from a small search engine (TF-IDF, written in NumPy
+in [`assistant/search.py`](assistant/search.py)) over a glossary of neural networks and the explanations of
+the controls, and the hints are simple rules ([`assistant/rules.py`](assistant/rules.py)). It needs nothing
+to download, it answers instantly and it never makes things up about the numbers it reads.
+
+![The assistant — the state of the training, Pick on the Dropout control and a hint with its fix](docs/7_assistant.png)
 
 ---
 
@@ -287,11 +312,19 @@ neural-network-digits/
 │   ├── training.py        #   the training loop, one epoch at a time, and the tests on the test photos
 │   ├── charts.py          #   all the charts (loss, gaussians, confusion, points map, softmax...)
 │   └── storage.py         #   where the files are saved, and the reset
+├── assistant/             # the assistant, without windows
+│   ├── brain.py           #   how it answers a question, looking at the state of the program
+│   ├── knowledge.py       #   the glossary, what every tab shows, the experiments to try
+│   ├── rules.py           #   the hints: the rules that notice the common mistakes
+│   └── search.py          #   the small search engine (TF-IDF with NumPy)
 ├── gui/                   # the window (Tkinter + matplotlib)
 │   ├── window.py          #   the window with the 5 tabs and the Info tab
 │   ├── tab_*.py           #   one tab per file (tab_info.py also offers the updates)
 │   ├── drawing_board.py   #   the drawing board and the diagram of the network (tab 4)
 │   ├── lab.py             #   the changes to the trained network (tab 4)
+│   ├── assistant.py       #   the assistant panel (F2)
+│   ├── pick.py            #   Pick (F1): click a control to have it explained
+│   ├── app_state.py       #   the state of the program, in a dictionary for the assistant
 │   └── base.py            #   colors and pieces of interface reused by all the tabs
 ├── docs/                  # the screenshots of this README
 ├── tests/                 # the automatic tests (pytest)
