@@ -104,6 +104,24 @@ class EvaluationTab(base.Tab):
             "right answers) or the point map (color = true digit, red ring = wrong, the line goes towards the "
             "group of the predicted digit). Below: how the accuracy drops with more noise or more rotation (the "
             "dashed line is the current choice). On the right the wrong photos."), tr("Evaluation charts"))
+        base.explain_charts(self.canvas, {
+            "confusion": (tr("Confusion matrix"), tr(
+                "Rows = the true digit, columns = the digit said by the network, and each cell counts the photos. "
+                "The right answers are on the diagonal: a big number outside it is a pair of digits that the "
+                "network mixes up.")),
+            "points map": (tr("Point map"), tr(
+                "Each point is a test photo, colored with its true digit, and the photos that the network sees as "
+                "similar are close. Red ring = wrong photo, the line goes towards the group of the digit it said. "
+                "Move the mouse over a point to see its photo."), lambda ax: ax.get_title().splitlines()[0]),
+            "noise curve": (tr("Accuracy with more noise"), tr(
+                "The accuracy on the test photos as the noise on them grows; the dashed line is the noise chosen "
+                "now. A curve that drops quickly means a network that gets lost with dirty photos.")),
+            "rotation curve": (tr("Accuracy with more rotation"), tr(
+                "The accuracy on the test photos as their rotation grows; the dashed line is the rotation chosen "
+                "now. If the network never saw rotated digits during training, the curve drops soon.")),
+            "wrong photo": (tr("A wrong photo"), tr(
+                "A test photo that the network gets wrong: above it the true digit, the digit it said and how sure "
+                "it was. The mistakes made with high confidence are the most worrying ones."), base.chart_title)})
         self.canvas.mpl_connect("draw_event", self._save_background)
         self.canvas.mpl_connect("motion_notify_event", self._on_motion)
 

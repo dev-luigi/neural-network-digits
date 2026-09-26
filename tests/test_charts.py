@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 
 from neural_net import charts
 from neural_net.network import softmax_steps
@@ -13,6 +14,30 @@ RNG = np.random.default_rng(0)
 
 def draw(fig):
     FigureCanvasAgg(fig).draw()
+
+
+def gids(fig):
+    """The names of the charts of the figure (the ones without a name are left out)."""
+    return [ax.get_gid() for ax in fig.axes if ax.get_gid()]
+
+
+def crossed_out(where):
+    """True if the chart (or the whole figure) is crossed out: a thin X from corner to corner, its empty state."""
+    transform = where.transAxes if hasattr(where, "transAxes") else where.transFigure
+    lines = [line.get_xydata().tolist() for line in where.findobj(Line2D) if line.get_transform() is transform]
+    return sorted(lines) == [[[0, 0], [1, 1]], [[0, 1], [1, 0]]]
+
+
+def test_crossed_out_does_not_move_the_chart():
+    fig = Figure()
+    ax = fig.subplots()
+    ax.plot([2, 3], [5, 7])
+    limits = ax.get_xlim(), ax.get_ylim()
+    charts.crossed_out(ax, "nothing here")
+    assert crossed_out(ax) and (ax.get_xlim(), ax.get_ylim()) == limits  # the X does not change the limits
+    charts.crossed_out(fig, "nothing at all")  # on the whole figure
+    draw(fig)
+    assert crossed_out(fig) and [text.get_text() for text in fig.texts] == ["nothing at all"]
 
 
 @pytest.mark.parametrize("method", ["PCA", "t-SNE"])
@@ -31,16 +56,27 @@ def test_exploration():
     fig = Figure(layout="constrained")
     charts.exploration(fig, photos, digits, photos[:30], digits[:30], title="dataset")
     draw(fig)
+    assert gids(fig) == ["samples", "per digit", "average digit", "pixel values"]  # Pick explains each chart
 
 
 def test_training_and_chart():
     photos, digits = RNG.integers(0, 256, (100, 28, 28), dtype=np.uint8), np.arange(100) % 10
     trainer = Trainer(hidden=(16, 8), photos_and_digits=(photos, digits))
+    fig = Figure(layout="constrained")
+    charts.training(fig, trainer.snapshot(), noise=0.1)  # no epoch yet: the three curves are crossed out
+    draw(fig)
+    assert [ax.get_gid() for ax in fig.axes if crossed_out(ax)] == ["loss", "accuracy", "corrections"]
+
     trainer.run_epoch(lr=0.05, noise=0.1)
     assert trainer.epoch == 1 and not trainer.exploded
-    fig = Figure(layout="constrained")
     charts.training(fig, trainer.snapshot(), noise=0.1)
     draw(fig)
+    assert gids(fig) == ["loss", "accuracy", "corrections", "first layer", "weights", "weights", "weights", "noise"]
+    assert not any(crossed_out(ax) for ax in fig.axes)
+
+    charts.training(fig, trainer.snapshot(), noise=0)  # no noise: that chart is crossed out, corner to corner
+    draw(fig)
+    assert [ax.get_gid() for ax in fig.axes if crossed_out(ax)] == ["noise"]
 
 
 def test_evaluation_with_matrix_and_with_map():
@@ -55,8 +91,17 @@ def test_evaluation_with_matrix_and_with_map():
         fig = Figure(layout="constrained")
         ax = charts.evaluation(fig, photos, digits, probabilities, curves, points_map=points_map)
         draw(fig)
+        assert ax.get_gid() == ("points map" if points_map else "confusion")
+        assert {"noise curve", "rotation curve", "wrong photo"} <= set(gids(fig))
+        not_ready = {"rotation curve", "points map"} if points_map and points_map["points"] is None else {"rotation curve"}
+        assert {ax.get_gid() for ax in fig.axes if crossed_out(ax)} == not_ready  # still computing: crossed out
         if points_map and points_map["points"] is not None:
             charts.point_label(ax, points_map["points"][0], photos[0], "true 0", "red")
+
+    fig = Figure(layout="constrained")
+    charts.evaluation(fig, photos, digits, np.eye(10)[digits], curves)  # all right: no wrong photo to show
+    draw(fig)
+    assert "No mistakes!" in [text.get_text() for ax in fig.axes if crossed_out(ax) for text in ax.texts]
 
 
 def test_map_photos():
@@ -77,3 +122,5 @@ def test_layer_view():
     charts.fill_layer_view(axes, "title", RNG.random((28, 28)), x, W, rows, true_digit=3)
     draw(fig)
     assert axes["numbers"][-1][p.argmax()].get_text() == f"{p.max():.0%}"
+    names = ["input", "matrix", "bars", "photo"]
+    assert [axes[name].get_gid() for name in names] == names

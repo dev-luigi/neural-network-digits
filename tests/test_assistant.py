@@ -81,6 +81,7 @@ def test_index_finds_the_most_similar_text():
     ("what can you do?", "The assistant"),
     ("hi", "Hi!"),
     ("what is this tab", "Tab 2 · Training"),
+    ("how do I change the language?", "Language of the program"),  # not "Temperature" (of language models)
 ])
 def test_answers(question, title):
     assert Assistant().answer(question, state(history=LEARNING_WELL)).title == title
@@ -97,6 +98,7 @@ def test_answers(question, title):
     ("cosa faccio adesso", "Cosa fare adesso"),
     ("perché non impara?", "Cosa vedo"),
     ("ciao", "Ciao!"),
+    ("come cambio la lingua?", "Lingua del programma"),
     ("what is a neuron?", "Neurone, pesi e bias"),  # in English too, whatever the language in use
 ])
 def test_answers_in_italian(italian, question, title):

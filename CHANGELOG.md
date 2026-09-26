@@ -7,6 +7,17 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.1.1] - 2026-09-26
+
+- **Pick on single charts**: in every tab Pick frames and explains only the chart under the mouse (the loss
+  curve, the confusion matrix, one wrong photo, one step of the calculation...), not the whole figure. The
+  tiles with the numbers are explained one at a time too.
+- **The language** is chosen at the top right, next to *Pick (F1)*: EN or IT. It is no longer in the Info tab.
+- Before each answer the assistant "thinks" for a moment, with a short animation (at most 0.6 seconds).
+- Every chart with nothing to show is crossed out by a thin X: no photos yet, no epoch done, no noise,
+  curves still being computed, no wrong photo, nothing drawn, no neuron selected.
+- Fix: Pick called the numbers of the last epoch "seconds per epoch".
+
 ## [1.1.0] - 2026-09-25
 
 - **The Assistant**: a panel on the right of the window (F2, or the *Assistant* button at the top right).

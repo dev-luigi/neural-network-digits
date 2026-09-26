@@ -52,6 +52,7 @@ DEFINITION = ("what is", "what are", "what does", "what do", "explain", "mean", 
               "why", "how does", "cos e", "cosa e", "cosa sono", "spiega", "spiegami", "significa", "vuol dire",
               "a cosa serve", "a che serve", "differenza", "perche", "come funziona")
 MINE = ("my", "mine", "mio", "mia", "miei", "mie")
+NOWHERE = ("assistant", "language")  # concepts that are not in a tab: no "Where" in their answer
 
 
 def _contains(question, phrases):
@@ -130,7 +131,7 @@ class Assistant:
             fact = facts(document.key, state)
             if fact:
                 notes.append((tr("Right now"), fact))
-        if document.kind != "tab" and document.tab != state.get("tab") and document.key != "assistant":
+        if document.kind != "tab" and document.tab != state.get("tab") and document.key not in NOWHERE:
             notes.append((tr("Where"), tr("tab {tab}", tab=knowledge.tab_name(document.tab))))
         if document.kind == "tab":
             notes.append((tr("Try it"), knowledge.experiment(document.key)))
