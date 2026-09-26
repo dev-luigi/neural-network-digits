@@ -7,6 +7,18 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.2.0] - 2026-09-26
+
+- **On PyPI**: the program can be installed with `pipx install neural-network-digits` (or
+  `pip install neural-network-digits`) and started with the `neural-network-digits` command, on Windows,
+  Linux and macOS. Installed like this, the photos, the model and the settings go in the folder of the user,
+  and the program tells you to update with `pipx upgrade neural-network-digits`.
+- The code is now in the `nn_digits` folder. `start.bat`, `./start.sh` and `python start.py` work as before,
+  and `python -m nn_digits` works too. Updating from the program moves the files by itself: your photos,
+  model and settings in `data/` stay where they are.
+- The windows that talk about the photos show the folder where they really are.
+- Discussions are open on GitHub for questions and ideas, and there is a *Sponsor* button.
+
 ## [1.1.1] - 2026-09-26
 
 - **Pick on single charts**: in every tab Pick frames and explains only the chart under the mouse (the loss

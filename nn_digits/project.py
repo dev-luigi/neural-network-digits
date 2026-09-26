@@ -10,7 +10,7 @@ import os
 from nn_digits.neural_net.storage import PORTABLE
 
 NAME = "Neural network from scratch"  # shown translated, with tr(NAME)
-VERSION = "1.1.1"  # MAJOR.MINOR.PATCH (semantic versioning)
+VERSION = "1.2.0"  # MAJOR.MINOR.PATCH (semantic versioning)
 
 AUTHOR = "Luigi Tanzillo"
 WEBSITE = "https://luigitanzillo.it"
