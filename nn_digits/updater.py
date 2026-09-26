@@ -34,7 +34,8 @@ LATEST_RELEASE_API = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/
 UPGRADE_COMMAND = f"pipx upgrade {PYPI_NAME}"  # for the copies installed with pip
 KEEP = {"data", ".git", ".venv", "venv"}  # never replaced by an update
 # Up to version 1.1.1 the code was next to start.py, not inside nn_digits/: an update removes what is left of it
-OLD_LAYOUT = ("assistant", "gui", "neural_net", "locales", "i18n.py", "updater.py")
+# (__pycache__ too: now nothing is imported from the main folder)
+OLD_LAYOUT = ("assistant", "gui", "neural_net", "locales", "i18n.py", "updater.py", "__pycache__")
 
 
 def version_numbers(version):

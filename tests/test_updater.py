@@ -66,7 +66,8 @@ def test_install_replaces_the_program_but_not_data(program, tmp_path):
 def test_update_from_a_version_without_nn_digits(program, tmp_path):
     """Up to 1.1.1 the code was next to start.py: what is left of it goes away, the data stays."""
     shutil.rmtree(program / "nn_digits")
-    for name in ("gui/tab_draw.py", "neural_net/network.py", "locales/it.json", "i18n.py", "updater.py"):
+    for name in ("gui/tab_draw.py", "neural_net/network.py", "locales/it.json", "i18n.py", "updater.py",
+                 "__pycache__/i18n.cpython-313.pyc"):
         (program / name).parent.mkdir(exist_ok=True)
         (program / name).write_text("old")
     (program / "project.py").write_text('VERSION = "1.1.1"')
