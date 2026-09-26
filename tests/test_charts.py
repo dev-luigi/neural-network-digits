@@ -5,9 +5,9 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
-from neural_net import charts
-from neural_net.network import softmax_steps
-from neural_net.training import Trainer
+from nn_digits.neural_net import charts
+from nn_digits.neural_net.network import softmax_steps
+from nn_digits.neural_net.training import Trainer
 
 RNG = np.random.default_rng(0)
 

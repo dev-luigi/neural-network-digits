@@ -1,12 +1,13 @@
 """Updates: comparing versions, changes from the CHANGELOG, installing a zip."""
 import os
 import shutil
+import sys
 import zipfile
 from pathlib import Path
 
 import pytest
 
-import updater
+from nn_digits import updater
 
 
 def test_version_comparison():
@@ -32,10 +33,10 @@ def program(tmp_path, monkeypatch):
     folder = tmp_path / "program"
     (folder / "data").mkdir(parents=True)
     (folder / "data" / "model.npz").write_text("my model")
-    (folder / "gui").mkdir()
-    (folder / "gui" / "old.py").write_text("old")
+    (folder / "nn_digits").mkdir()
+    (folder / "nn_digits" / "old.py").write_text("old")
+    (folder / "nn_digits" / "project.py").write_text('VERSION = "1.0.0"')
     (folder / "start.py").write_text("old")
-    (folder / "project.py").write_text('VERSION = "1.0.0"')
     (folder / "requirements.txt").write_text("numpy\n")
     monkeypatch.setattr(updater, "APP_DIR", folder)
     return folder
@@ -49,17 +50,38 @@ def make_zip(path, files):
     return path.as_uri()  # urllib can read local files too (file://...)
 
 
-VERSION_2 = {"start.py": "new", "project.py": 'VERSION = "2.0.0"', "requirements.txt": "numpy\npillow\n",
-             "gui/new.py": "new", "data/model.npz": "must NOT overwrite"}
+VERSION_2 = {"start.py": "new", "nn_digits/project.py": 'VERSION = "2.0.0"', "nn_digits/new.py": "new",
+             "requirements.txt": "numpy\npillow\n", "data/model.npz": "must NOT overwrite"}
 
 
 def test_install_replaces_the_program_but_not_data(program, tmp_path):
     libraries_changed = updater.install(make_zip(tmp_path / "v2.zip", VERSION_2))
     assert libraries_changed
     assert (program / "start.py").read_text() == "new"
-    assert (program / "gui" / "new.py").exists()
-    assert not (program / "gui" / "old.py").exists()  # the code folders are replaced
+    assert (program / "nn_digits" / "new.py").exists()
+    assert not (program / "nn_digits" / "old.py").exists()  # the code folders are replaced
     assert (program / "data" / "model.npz").read_text() == "my model"
+
+
+def test_update_from_a_version_without_nn_digits(program, tmp_path):
+    """Up to 1.1.1 the code was next to start.py: what is left of it goes away, the data stays."""
+    shutil.rmtree(program / "nn_digits")
+    for name in ("gui/tab_draw.py", "neural_net/network.py", "locales/it.json", "i18n.py", "updater.py",
+                 "__pycache__/i18n.cpython-313.pyc"):
+        (program / name).parent.mkdir(exist_ok=True)
+        (program / name).write_text("old")
+    (program / "project.py").write_text('VERSION = "1.1.1"')
+    updater.install(make_zip(tmp_path / "v2.zip", {**VERSION_2, "project.py": "from nn_digits.project import *"}))
+    assert sorted(p.name for p in program.iterdir()) == ["data", "nn_digits", "project.py", "requirements.txt",
+                                                         "start.py"]
+    assert (program / "data" / "model.npz").read_text() == "my model"
+
+
+def test_the_zip_of_an_old_version_is_refused(program, tmp_path):
+    """A zip without nn_digits/ (version 1.1.1 or older) is not the program for this updater."""
+    with pytest.raises(ValueError):
+        updater.install(make_zip(tmp_path / "old.zip", {"start.py": "x", "project.py": 'VERSION = "1.1.1"'}))
+    assert (program / "start.py").read_text() == "old"
 
 
 def test_same_libraries(program, tmp_path):
@@ -99,6 +121,16 @@ def test_if_something_goes_wrong_puts_the_old_files_back(program, tmp_path, monk
     with pytest.raises(OSError):
         updater.install(make_zip(tmp_path / "v2.zip", VERSION_2))
     assert (program / "start.py").read_text() == "old"
-    assert (program / "gui" / "old.py").exists()
-    assert not (program / "gui" / "new.py").exists()
+    assert (program / "nn_digits" / "old.py").exists()
+    assert not (program / "nn_digits" / "new.py").exists()
     assert (program / "requirements.txt").read_text() == "numpy\n"
+
+
+def test_installed_with_pip(monkeypatch):
+    monkeypatch.setattr(updater.storage, "PORTABLE", False)
+    assert updater.installed_with_pip()
+    assert not updater.installed_with_git()
+    started = []
+    monkeypatch.setattr(updater.subprocess, "Popen", lambda command, **options: started.append(command))
+    updater.restart()
+    assert started == [[sys.executable, "-m", "nn_digits"]]  # there is no start.py: it starts as a module

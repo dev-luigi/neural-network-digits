@@ -1,4 +1,83 @@
-# Only the test configuration: the program version is in project.py
+# The package published on PyPI (pip install neural-network-digits) and the test configuration.
+# The version is not written here: it is read from nn_digits/project.py (see "Publishing a new version" in the README).
+[build-system]
+requires = ["hatchling>=1.27", "hatch-fancy-pypi-readme>=24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neural-network-digits"
+dynamic = ["version", "readme"]
+description = "A neural network written from scratch in NumPy that learns handwritten digits (MNIST), with an educational interface to watch it learn and look inside it"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Luigi Tanzillo" }]
+requires-python = ">=3.9"
+# The same libraries as requirements.txt (a test checks that they stay equal)
+dependencies = ["numpy>=1.22", "pillow>=9.1", "matplotlib>=3.6"]
+keywords = ["neural network", "mnist", "numpy", "from scratch", "backpropagation", "machine learning",
+            "education", "tkinter"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Environment :: MacOS X",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Natural Language :: Italian",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+[project.scripts]
+neural-network-digits = "nn_digits.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dev-luigi/neural-network-digits"
+Changelog = "https://github.com/dev-luigi/neural-network-digits/blob/main/CHANGELOG.md"
+Issues = "https://github.com/dev-luigi/neural-network-digits/issues"
+Discussions = "https://github.com/dev-luigi/neural-network-digits/discussions"
+Funding = "https://github.com/sponsors/dev-luigi"
+
+[tool.hatch.version]
+path = "nn_digits/project.py"  # the line VERSION = "x.y.z"
+
+# The wheel: only the nn_digits package (no start.py next to it: that is how the program knows pip installed it),
+# with the CHANGELOG inside, for the Changelog page of the Info tab
+[tool.hatch.build.targets.wheel]
+packages = ["nn_digits"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"CHANGELOG.md" = "nn_digits/CHANGELOG.md"
+
+# The source archive: only what is listed here, nothing else of the folder
+[tool.hatch.build.targets.sdist]
+only-include = ["nn_digits", "README.md", "CHANGELOG.md", "LICENSE", "requirements.txt"]
+
+# The README shown on PyPI: the relative links and images of GitHub become full addresses
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(src="|!\[[^\]]*\]\()(?!https?://|#)([^")]+)'
+replacement = '\1https://raw.githubusercontent.com/dev-luigi/neural-network-digits/main/\2'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(href="|\]\()(?!https?://|#)([^")]+)'
+replacement = '\1https://github.com/dev-luigi/neural-network-digits/blob/main/\2'
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

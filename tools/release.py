@@ -5,8 +5,9 @@ Publishing a new version, in two commands:
     (write the changes in CHANGELOG.md)
     python tools/release.py publish          checks, runs the tests, commit, tag v1.1.0 and push to GitHub
 
-When the tag is pushed, GitHub's CI/CD (.github/workflows/release.yml) runs the tests again, creates the zip
-and publishes the release: from that moment the installed programs offer the update.
+When the tag is pushed, GitHub's CI/CD (.github/workflows/release.yml) runs the tests again, creates the zip,
+publishes the release and (after your approval) publishes the package on PyPI: from that moment the installed
+programs offer the update.
 
 Commands used by the CI/CD:
     python tools/release.py check v1.1.0     does the tag match the version, and are the changes written?
@@ -20,9 +21,12 @@ from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(APP_DIR))
-import updater  # noqa: E402  (needs the path added just above)
+# No __pycache__ from here: prepare rewrites nn_digits/project.py right after importing it, and a .pyc saved
+# in the same second with the same size ("1.1.1" -> "1.2.0") would keep giving Python the old version
+sys.dont_write_bytecode = True
+from nn_digits import updater  # noqa: E402  (needs the path added just above)
 
-PROJECT_FILE = APP_DIR / "project.py"
+PROJECT_FILE = APP_DIR / "nn_digits" / "project.py"
 CHANGELOG = APP_DIR / "CHANGELOG.md"
 TODO_NOTE = "- (write the changes here)"
 
@@ -39,7 +43,7 @@ def fail(message):
 def check(tag):
     version = current_version()
     if tag != f"v{version}":
-        fail(f"The tag {tag} does not match the program version (project.py says {version}).")
+        fail(f"The tag {tag} does not match the program version (nn_digits/project.py says {version}).")
     notes = updater.release_notes(version, CHANGELOG)
     if not notes or TODO_NOTE in notes:
         fail(f"CHANGELOG.md is missing the changes of version {version}.")

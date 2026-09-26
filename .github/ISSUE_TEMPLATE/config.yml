@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Question or idea
+    url: https://github.com/dev-luigi/neural-network-digits/discussions
+    about: Ask a question, propose an idea or show what you did with the program, in the Discussions.
   - name: Security problem
     url: https://github.com/dev-luigi/neural-network-digits/security/advisories/new
     about: Report it privately, not in a public issue (see SECURITY.md).
