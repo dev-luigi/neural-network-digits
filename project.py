@@ -7,7 +7,7 @@ GitHub's CI/CD creates the release and the programs already installed offer it a
 import os
 
 NAME = "Neural network from scratch"  # shown translated, with tr(NAME)
-VERSION = "1.1.0"  # MAJOR.MINOR.PATCH (semantic versioning)
+VERSION = "1.1.1"  # MAJOR.MINOR.PATCH (semantic versioning)
 
 AUTHOR = "Luigi Tanzillo"
 WEBSITE = "https://luigitanzillo.it"
