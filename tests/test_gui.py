@@ -9,11 +9,11 @@ import pytest
 from matplotlib.figure import Figure
 from PIL import Image, ImageColor
 
-from assistant import knowledge, rules
-from gui import base
-from gui.assistant import FRAME, MOST_FRAMES, THINKING, WIDTH
-from neural_net import charts, storage
-from project import VERSION
+from nn_digits.assistant import knowledge, rules
+from nn_digits.gui import base
+from nn_digits.gui.assistant import FRAME, MOST_FRAMES, THINKING, WIDTH
+from nn_digits.neural_net import charts, storage
+from nn_digits.project import VERSION
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def window(tmp_path, monkeypatch):
         pytest.skip(f"no screen available ({str(problem).splitlines()[0]})")
     errors = []
     root.report_callback_exception = lambda *error: errors.append(error)
-    from gui.window import MainWindow
+    from nn_digits.gui.window import MainWindow
     window = MainWindow(root, check_updates=False)
     window.errors = errors
     yield window
@@ -57,7 +57,7 @@ def test_every_tab_opens(window):
 
 
 def test_the_state_seen_by_the_assistant(window):
-    from gui.app_state import app_state
+    from nn_digits.gui.app_state import app_state
     for index in range(len(window.all_tabs)):
         window.tabs.select(index)
         window.root.update()
@@ -264,7 +264,7 @@ def test_hints_and_their_fix(window):
 
 
 def test_readable_markdown():
-    from gui.tab_info import readable_markdown
+    from nn_digits.gui.tab_info import readable_markdown
     markdown = "First.\n\n- **Data**: a line\n  that goes on\n  - under `point`\n- other"
     assert readable_markdown(markdown) == "First.\n\n•  Data: a line that goes on\n    •  under point\n•  other"
 

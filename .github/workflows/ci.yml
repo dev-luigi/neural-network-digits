@@ -1,5 +1,5 @@
 # CI: at every push to main or develop and at every pull request it runs the tests on Windows, Linux and
-# macOS, with the oldest supported Python version and with the newest one.
+# macOS, with the oldest supported Python version and with the newest one, and it builds the package for PyPI.
 # release.yml uses it too, before publishing a version.
 name: CI
 
@@ -48,3 +48,40 @@ jobs:
       - name: start.sh (Linux, macOS)
         if: runner.os != 'Windows'
         run: ./start.sh --version
+
+  # The package for PyPI: built once, checked (tools/check_package.py and twine) and installed with pip in a clean
+  # environment, where the neural-network-digits command must start. release.yml publishes this same package.
+  package:
+    name: Package for PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Build
+        run: |
+          python -m pip install build twine
+          python -m build
+
+      - name: Check the contents
+        run: |
+          python tools/check_package.py dist
+          python -m twine check --strict dist/*
+
+      # Outside the repository, so that only the installed package is found
+      - name: Install it with pip and start it
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m venv pip-install
+          pip-install/bin/python -m pip install "$GITHUB_WORKSPACE"/dist/*.whl
+          pip-install/bin/neural-network-digits --version
+          pip-install/bin/python -m nn_digits --version
+          pip-install/bin/python -c "from nn_digits import updater; assert updater.installed_with_pip(); assert updater.CHANGELOG.exists(); print(updater.storage.DATA_DIR)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: dist/

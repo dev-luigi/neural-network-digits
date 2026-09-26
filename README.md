@@ -9,6 +9,7 @@
 <p align="center">
   <a href="https://github.com/dev-luigi/neural-network-digits/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/dev-luigi/neural-network-digits/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/dev-luigi/neural-network-digits/releases/latest"><img alt="Latest version" src="https://img.shields.io/github/v/release/dev-luigi/neural-network-digits?label=version&color=8B5CF6"></a>
+  <a href="https://pypi.org/project/neural-network-digits/"><img alt="PyPI" src="https://img.shields.io/pypi/v/neural-network-digits?label=PyPI&color=3775A9&logo=pypi&logoColor=white"></a>
   <a href="https://www.python.org/"><img alt="Python 3.9+" src="https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white"></a>
   <a href="https://numpy.org/"><img alt="Only NumPy" src="https://img.shields.io/badge/only-NumPy-013243?logo=numpy&logoColor=white"></a>
   <a href="https://matplotlib.org/"><img alt="Tkinter + matplotlib" src="https://img.shields.io/badge/GUI-Tkinter%20%2B%20matplotlib-11557C"></a>
@@ -38,7 +39,7 @@ The interface is available in English and Italian (the **EN | IT** selector at t
 
 - **The network, line by line**: forward, softmax, cross-entropy, backpropagation, SGD with momentum,
   L2, dropout, 4 activation functions. All in a file of ~140 lines, commented in simple English
-  ([`neural_net/network.py`](neural_net/network.py)).
+  ([`nn_digits/neural_net/network.py`](nn_digits/neural_net/network.py)).
 - **Every step**: downloading the data, exploring it before training, training, evaluating, experimenting.
 - **An interface with 5 tabs**, with dozens of knobs and an explanation for every control (just
   hover it with the mouse).
@@ -46,6 +47,7 @@ The interface is available in English and Italian (the **EN | IT** selector at t
   explains any control you click and tells you when something looks wrong, with a fix to apply in one click.
 - **From the terminal too**: downloading, exploring, training, evaluating and the drawing board are also
   commands.
+- **Installed in one line** with `pipx install neural-network-digits`, or as a zip with a double-click.
 - **Automatic updates** from the GitHub releases, with one click.
 
 ### 1 · Data — the pre-training
@@ -119,8 +121,9 @@ happening in it:
   fixes it in one click and a *Why?* link that explains the concept behind it.
 
 It is not a language model, on purpose: the answers come from a small search engine (TF-IDF, written in NumPy
-in [`assistant/search.py`](assistant/search.py)) over a glossary of neural networks and the explanations of
-the controls, and the hints are simple rules ([`assistant/rules.py`](assistant/rules.py)). It needs nothing
+in [`nn_digits/assistant/search.py`](nn_digits/assistant/search.py)) over a glossary of neural networks and
+the explanations of the controls, and the hints are simple rules
+([`nn_digits/assistant/rules.py`](nn_digits/assistant/rules.py)). It needs nothing
 to download, it answers in a moment and it never makes things up about the numbers it reads.
 
 ![The assistant — the state of the training, Pick on the Dropout control and a hint with its fix](docs/7_assistant.png)
@@ -129,7 +132,24 @@ to download, it answers in a moment and it never makes things up about the numbe
 
 ## Quick Start
 
-You need **Python 3.9 or newer**. Download the zip of the latest version from the
+You need **Python 3.9 or newer**. There are two ways to install the program.
+
+### With pip
+
+```bash
+pipx install neural-network-digits      # or:  pip install neural-network-digits
+neural-network-digits                   # opens the interface
+```
+
+[pipx](https://pipx.pypa.io) puts the program in an environment of its own and the `neural-network-digits`
+command in the PATH. On Linux Tkinter must be installed first (see the table below). The photos, the model and
+the settings go in the folder of your user: `%APPDATA%\neural-network-digits` on Windows,
+`~/Library/Application Support/neural-network-digits` on macOS and `~/.local/share/neural-network-digits`
+on Linux.
+
+### With the zip
+
+Download the zip of the latest version from the
 [Releases](https://github.com/dev-luigi/neural-network-digits/releases/latest) page and extract it.
 
 **Windows**: double-click **`start.bat`**. The first time it installs the libraries by itself (numpy, pillow,
@@ -150,7 +170,9 @@ what to install.
 Tested on Windows 11, Ubuntu 24.04, Debian 12, Fedora 44 and Arch Linux; on macOS the automatic tests
 and `start.sh` run at every push (CI).
 
-**At the first start** the `data/` folder is empty:
+### The first start
+
+There are no photos yet:
 
 1. in the **1 · Data** tab press *Download the photos* (MNIST, ~11 MB, only once);
 2. in the **2 · Training** tab press *Start*: with the starting settings (1000 photos,
@@ -168,7 +190,8 @@ off in the **Info** tab). If there is one, it shows the changes and offers:
 - **Later** or **Skip this version**.
 
 From the terminal it is `start.bat update` (on Linux and macOS `./start.sh update`). If you downloaded the project
-with `git clone`, update with `git pull` instead.
+with `git clone`, update with `git pull` instead. If you installed it with pip, the program tells you when a new
+version is out and you update it with `pipx upgrade neural-network-digits` (or `pip install -U neural-network-digits`).
 
 ---
 
@@ -181,15 +204,17 @@ with `git clone`, update with `git pull` instead.
 | Charts | matplotlib (loss, gaussians, confusion matrix, PCA / t-SNE map) |
 | Images | Pillow |
 | Dataset | MNIST (downloaded by the program from the Data tab, not in the repository) |
-| Languages | English / Italian (`i18n.py` + `locales/it.json`) |
+| Languages | English / Italian (`nn_digits/i18n.py` + `nn_digits/locales/it.json`) |
 | Tests | pytest (headless on Linux with xvfb) |
-| CI/CD | GitHub Actions — tests on Windows, Linux and macOS, automatic releases from tags |
+| Package | [PyPI](https://pypi.org/project/neural-network-digits/), built with hatchling |
+| CI/CD | GitHub Actions — tests on Windows, Linux and macOS, automatic releases (GitHub and PyPI) from tags |
 
 ---
 
 ## From the terminal
 
-The same steps, without the interface (on Linux and macOS: `./start.sh` instead of `start.bat`):
+The same steps, without the interface (on Linux and macOS: `./start.sh` instead of `start.bat`; installed
+with pip: `neural-network-digits`):
 
 ```text
 start.bat download --per-digit 100       1. downloads the photos (with --all the whole collection)
@@ -202,7 +227,8 @@ start.bat update                         checks whether there is a new version a
 start.bat --version                      shows the installed version
 ```
 
-`start.bat train --help` shows all the options. The charts are saved in `data/charts/`.
+`start.bat train --help` shows all the options. The charts are saved in `data/charts/` (installed with pip,
+in the `charts` folder of the data).
 
 ---
 
@@ -266,7 +292,8 @@ The tests check:
 - learning with all the activations, and the softmax;
 - the saving of the photos and their quick copy, the preparation of the photos and all the charts;
 - the install of updates: `data/` is not touched, dangerous zips are refused
-  and the old files go back in place if something goes wrong;
+  and the old files go back in place if something goes wrong, also coming from the versions before `nn_digits/`;
+- the package for PyPI: its files, the command, the libraries and where the data goes;
 - the release tool: the version and the changes in CHANGELOG.md;
 - the translations: every text has its Italian version;
 - the opening of all the tabs of the interface.
@@ -291,50 +318,59 @@ Then, from the `main` branch:
 python tools/release.py publish         # tests, tag v1.1.0 and push: the CI/CD does the rest
 ```
 
+The CI/CD publishes the release on GitHub with the zip, then the package on PyPI: that last step waits for
+your approval (Actions tab, the run of the release, *Review deployments*). PyPI trusts this repository's
+workflow (Trusted Publishing), so there is no password or token to keep.
+
 ---
 
 ## Project Structure
 
 ```
 neural-network-digits/
-├── start.bat              # double-click = graphical interface (Windows)
-├── start.sh               # ./start.sh = graphical interface (Linux, macOS), in its own .venv
-├── start.py               # the one starting point: interface or a step from the terminal
-├── requirements.txt       # the libraries: numpy, pillow, matplotlib (requirements-dev.txt: pytest)
-├── project.py             # name, version, author and GitHub addresses of the program
-├── updater.py             # check and install of new versions from GitHub
-├── i18n.py                # languages: tr() gives every text in the chosen language
-├── locales/it.json        # the Italian translations
-├── CHANGELOG.md           # the changes of every version
-├── LICENSE                # MIT
-├── neural_net/            # the "brain", without windows
-│   ├── network.py         #   forward, softmax, loss, backpropagation (read this first!)
-│   ├── data.py            #   photos: download, loading, preparation, noise, alterations
-│   ├── training.py        #   the training loop, one epoch at a time, and the tests on the test photos
-│   ├── charts.py          #   all the charts (loss, gaussians, confusion, points map, softmax...)
-│   └── storage.py         #   where the files are saved, and the reset
-├── assistant/             # the assistant, without windows
-│   ├── brain.py           #   how it answers a question, looking at the state of the program
-│   ├── knowledge.py       #   the glossary, what every tab shows, the experiments to try
-│   ├── rules.py           #   the hints: the rules that notice the common mistakes
-│   └── search.py          #   the small search engine (TF-IDF with NumPy)
-├── gui/                   # the window (Tkinter + matplotlib)
-│   ├── window.py          #   the window with the 5 tabs and the Info tab
-│   ├── tab_*.py           #   one tab per file (tab_info.py also offers the updates)
-│   ├── drawing_board.py   #   the drawing board and the diagram of the network (tab 4)
-│   ├── lab.py             #   the changes to the trained network (tab 4)
-│   ├── assistant.py       #   the assistant panel (F2)
-│   ├── pick.py            #   Pick (F1): click a control to have it explained
-│   ├── app_state.py       #   the state of the program, in a dictionary for the assistant
-│   └── base.py            #   colors and pieces of interface reused by all the tabs
-├── docs/                  # the screenshots of this README
-├── tests/                 # the automatic tests (pytest)
-├── tools/release.py       # to publish a new version
-├── .github/workflows/     # the CI/CD: tests at every push, release at every tag
-└── data/                  # created by the program: photos, model, charts, settings (excluded from git)
+├── start.bat                # double-click = graphical interface (Windows)
+├── start.sh                 # ./start.sh = graphical interface (Linux, macOS), in its own .venv
+├── start.py                 # starts the zip and git copies: interface or a step from the terminal
+├── project.py               # only for the updates from version 1.1.1 and older (the real one is in nn_digits/)
+├── requirements.txt         # the libraries: numpy, pillow, matplotlib (requirements-dev.txt: pytest)
+├── pyproject.toml           # the package for PyPI and the settings of the tests
+├── CHANGELOG.md             # the changes of every version
+├── LICENSE                  # MIT
+├── nn_digits/               # the program: the package that pip installs
+│   ├── cli.py               #   the terminal commands (start.py and the neural-network-digits command start here)
+│   ├── project.py           #   name, version, author and addresses of the program
+│   ├── updater.py           #   check and install of new versions from GitHub
+│   ├── i18n.py              #   languages: tr() gives every text in the chosen language
+│   ├── locales/it.json      #   the Italian translations
+│   ├── neural_net/          #   the "brain", without windows
+│   │   ├── network.py       #     forward, softmax, loss, backpropagation (read this first!)
+│   │   ├── data.py          #     photos: download, loading, preparation, noise, alterations
+│   │   ├── training.py      #     the training loop, one epoch at a time, and the tests on the test photos
+│   │   ├── charts.py        #     all the charts (loss, gaussians, confusion, points map, softmax...)
+│   │   └── storage.py       #     where the files are saved (data/ or the folder of the user), and the reset
+│   ├── assistant/           #   the assistant, without windows
+│   │   ├── brain.py         #     how it answers a question, looking at the state of the program
+│   │   ├── knowledge.py     #     the glossary, what every tab shows, the experiments to try
+│   │   ├── rules.py         #     the hints: the rules that notice the common mistakes
+│   │   └── search.py        #     the small search engine (TF-IDF with NumPy)
+│   └── gui/                 #   the window (Tkinter + matplotlib)
+│       ├── window.py        #     the window with the 5 tabs and the Info tab
+│       ├── tab_*.py         #     one tab per file (tab_info.py also offers the updates)
+│       ├── drawing_board.py #     the drawing board and the diagram of the network (tab 4)
+│       ├── lab.py           #     the changes to the trained network (tab 4)
+│       ├── assistant.py     #     the assistant panel (F2)
+│       ├── pick.py          #     Pick (F1): click a control to have it explained
+│       ├── app_state.py     #     the state of the program, in a dictionary for the assistant
+│       └── base.py          #     colors and pieces of interface reused by all the tabs
+├── docs/                    # the screenshots of this README
+├── tests/                   # the automatic tests (pytest)
+├── tools/                   # release.py publishes a new version, check_package.py checks the package for PyPI
+├── .github/workflows/       # the CI/CD: tests at every push, release (GitHub and PyPI) at every tag
+└── data/                    # created by the program: photos, model, charts, settings (excluded from git)
 ```
 
-The logic (`neural_net/`) does not depend on the interface: both the tabs and the terminal commands use it.
+The logic (`nn_digits/neural_net/`) does not depend on the interface: both the tabs and the terminal commands
+use it.
 
 ---
 
@@ -344,6 +380,16 @@ The photos come from the [MNIST](https://yann.lecun.com/exdb/mnist/) dataset by 
 Christopher J.C. Burges, distributed under the
 [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) license. The program downloads them from the
 public copy used by Keras/TensorFlow and does not include them in the repository.
+
+---
+
+## Community
+
+Questions, ideas and what you did with the program go in the
+[Discussions](https://github.com/dev-luigi/neural-network-digits/discussions); bugs in the
+[issues](https://github.com/dev-luigi/neural-network-digits/issues/new/choose). If the project is useful to you,
+a star helps other people find it, and you can support it with
+[GitHub Sponsors](https://github.com/sponsors/dev-luigi).
 
 ---
 

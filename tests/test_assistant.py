@@ -3,10 +3,10 @@ The state of the program is a dictionary written by hand, like the one made by g
 import numpy as np
 import pytest
 
-import i18n
-from assistant import knowledge, rules
-from assistant.brain import Assistant, facts, next_text, status_text
-from assistant.search import Index, plain, stem, words
+from nn_digits import i18n
+from nn_digits.assistant import knowledge, rules
+from nn_digits.assistant.brain import Assistant, facts, next_text, status_text
+from nn_digits.assistant.search import Index, plain, stem, words
 
 PARAMS = dict(lr=0.05, momentum=0.9, l2=1e-4, dropout=0.0, batch=32, noise=0.0, rotation=12, shift=2)
 CHOSEN = {"hidden": [128, 64], "activation": "relu", "init_scale": 1.0, "seed": 0}

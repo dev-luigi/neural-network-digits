@@ -1,23 +1,20 @@
-"""Translations: every text passed to tr() has its Italian version in locales/it.json, and none is left over."""
+"""Translations: every text passed to tr() has its Italian version in nn_digits/locales/it.json, and none is left over."""
 import ast
 import json
 import re
 from pathlib import Path
 
-from project import NAME
+from nn_digits.project import NAME
 
 ROOT = Path(__file__).resolve().parent.parent
-ITALIAN = json.loads((ROOT / "locales" / "it.json").read_text(encoding="utf-8"))
-SKIP = {"tests", "data", ".git", ".venv", "venv", "env"}
+ITALIAN = json.loads((ROOT / "nn_digits" / "locales" / "it.json").read_text(encoding="utf-8"))
 
 
 def translated_texts():
     """The English texts the program translates, and the tr() calls that do not get a plain string."""
     texts, not_literal = set(), []
-    for path in sorted(ROOT.rglob("*.py")):
+    for path in sorted((ROOT / "nn_digits").rglob("*.py")):
         where = path.relative_to(ROOT)
-        if SKIP & set(where.parts):
-            continue
         tree = ast.parse(path.read_text(encoding="utf-8"))
         # Tiles translates by itself the names it receives, so its names are texts to translate too
         inside_tiles = {id(node) for cls in ast.walk(tree) if isinstance(cls, ast.ClassDef) and cls.name == "Tiles"

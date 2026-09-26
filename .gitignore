@@ -6,6 +6,10 @@ data/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+# The package for PyPI built by  python -m build
+dist/
+build/
+*.egg-info/
 .venv/
 venv/
 env/

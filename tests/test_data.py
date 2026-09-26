@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 from PIL import Image, ImageDraw
 
-from neural_net import data
-from neural_net.data import (add_noise, alter, augment, load_photos, normalize, one_hot, prepare_drawing,
-                             save_collection)
+from nn_digits.neural_net import data
+from nn_digits.neural_net.data import (add_noise, alter, augment, load_photos, normalize, one_hot,
+                                       prepare_drawing, save_collection)
 
 PHOTOS = np.random.default_rng(0).integers(0, 256, (5, 28, 28), dtype=np.uint8)
 RNG = np.random.default_rng(1)
