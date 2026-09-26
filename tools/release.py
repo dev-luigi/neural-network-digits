@@ -21,6 +21,9 @@ from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(APP_DIR))
+# No __pycache__ from here: prepare rewrites nn_digits/project.py right after importing it, and a .pyc saved
+# in the same second with the same size ("1.1.1" -> "1.2.0") would keep giving Python the old version
+sys.dont_write_bytecode = True
 from nn_digits import updater  # noqa: E402  (needs the path added just above)
 
 PROJECT_FILE = APP_DIR / "nn_digits" / "project.py"
