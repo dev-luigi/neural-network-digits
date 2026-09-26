@@ -7,13 +7,15 @@ The tabs "talk" to each other with two notices:
 To start quickly, each tab draws itself only when you open it (see base.Tab).
 Shortly after opening, a background check looks on GitHub for a new version.
 
-At the top right: Pick (F1, see pick.py) and the Assistant panel (F2, see assistant.py).
+At the top right: the language, Pick (F1, see pick.py) and the Assistant panel (F2, see assistant.py).
 """
 import re
 import tkinter as tk
 import traceback
 from tkinter import messagebox, ttk
 
+import i18n
+import updater
 from gui import base
 from gui.assistant import WIDTH, AssistantPanel
 from gui.pick import Picker
@@ -50,12 +52,20 @@ class MainWindow:
         self.all_tabs = [self.data_tab, self.training_tab, self.evaluation_tab, self.draw_tab, self.inside_tab,
                          self.info_tab]
 
-        # The assistant: the panel on the right, Pick, and their two buttons at the height of the tabs
-        self.picker = Picker(root, lambda control: self.assistant.explain_control(control), self._pick_changed)
+        # At the height of the tabs: the language, then Pick and the assistant (the panel on the right)
+        self.picker = Picker(root, lambda control, part: self.assistant.explain_control(control, part),
+                             self._pick_changed)
         self.assistant = AssistantPanel(self, self._unread_changed)
         self._size_before_panel = None
         buttons = tk.Frame(root, bg=base.BACKGROUND)
         buttons.place(in_=self.tabs, relx=1, x=-16, y=8, anchor="ne")
+        self.language = tk.StringVar(value=i18n.LANGUAGE)
+        languages = base.choice_buttons(buttons, "", [(code.upper(), code) for code in i18n.LANGUAGES], self.language,
+                                        self._language_changed, explanation=tr(
+            "The language of the program: EN = English, IT = Italian. It is applied when the program starts again: "
+            "it offers to restart it right away."))
+        languages.pack_configure(padx=(0, 12))
+        languages.pick_name = tr("Language")
         self.pick_button = base.button(buttons, tr("Pick (F1)"), self.picker.toggle)
         self.pick_button.pack(side="left", padx=(0, 6))
         self.assistant_button = base.button(buttons, tr("Assistant (F2)"), self.toggle_assistant)
@@ -144,6 +154,14 @@ class MainWindow:
         elif self._size_before_panel:
             width, x = self._size_before_panel
         self.root.geometry(f"{width}x{height}+{x}+{y}")
+
+    def _language_changed(self):
+        """Saves the chosen language: it is applied at the next start, so it offers to restart now."""
+        code = self.language.get()
+        storage.save_setting("language", code)
+        if code != i18n.LANGUAGE and messagebox.askyesno(tr("Language"), tr("Restart now to apply the language?")):
+            updater.restart()
+            self.close()
 
     def _pick_changed(self, active):
         self._paint(self.pick_button, active)

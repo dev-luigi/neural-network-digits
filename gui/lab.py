@@ -208,8 +208,9 @@ class Lab:
         who, net, act = self.board.selected, self.modified, self.board.activations
         self.weights_drawing.delete("all")
         self._images.clear()
-        if who is None or net is None:
+        if who is None or net is None:  # no neuron chosen: its weights are crossed out
             self.neuron_name.config(text=tr("Click a neuron in the network diagram."))
+            base.cross_out(self.weights_drawing, 1, 1, 299, 127, frame=True)
             return self.neuron_values.clear()
         layer, j = who
         output = layer == len(net.weights) - 1
@@ -228,6 +229,10 @@ class Lab:
             self._image(0, tr("what it looks for (its weights)"), W.reshape(28, 28))
             if act is not None:
                 self._image(156, tr("what it finds in the drawing"), (W * act[0]).reshape(28, 28))
+            else:  # nothing drawn: there is nothing to find yet
+                self.weights_drawing.create_text(156, 0, text=tr("what it finds in the drawing"), anchor="nw",
+                                                 fill=base.TEXT_SOFT, font=(base.FONT, 8))
+                base.cross_out(self.weights_drawing, 156, 14, 268, 126, frame=True)
         elif act is not None:
             self._bars(W * act[layer], tr("contribution of every neuron of the layer before"))
         else:

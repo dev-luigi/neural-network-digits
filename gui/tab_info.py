@@ -1,5 +1,6 @@
 """
-Info tab: who made the program, the version, the updates, the credits, the language and the changelog.
+Info tab: who made the program, the version, the updates, the credits and the changelog.
+(The language is chosen at the top right of the window, see window.py.)
 
 Here there is also the small window that offers the update when a new version comes out on GitHub
 (the check starts by itself at every start, see window.py; the logic is in updater.py).
@@ -9,7 +10,6 @@ import tkinter as tk
 import webbrowser
 from tkinter import messagebox, ttk
 
-import i18n
 import updater
 from gui import base
 from i18n import tr
@@ -111,12 +111,6 @@ class InfoTab(base.Tab):
         self.at_start = base.checkbox(right, tr("Check for updates at every start"), lambda: (
             storage.save_setting("check_updates", self.at_start.get())))
         self.at_start.set(storage.settings()["check_updates"])
-
-        # ---- language (applied at the next start)
-        base.section(right, tr("Language"))
-        self.language = tk.StringVar(value=i18n.LANGUAGE)
-        base.choice_buttons(base.row(right, pady=(6, 0)), "", [(name, code) for code, name in i18n.LANGUAGES.items()],
-                            self.language, self._language_changed)
         self._show_page()
 
     def _show_page(self):
@@ -124,14 +118,6 @@ class InfoTab(base.Tab):
         for page in self.pages.values():
             page.pack_forget()
         self.pages[self.page.get()].pack(anchor="nw", fill="both", expand=True, padx=48, pady=(16, 36))
-
-    def _language_changed(self):
-        """Saves the chosen language: it is applied at the next start, so it offers to restart now."""
-        code = self.language.get()
-        storage.save_setting("language", code)
-        if code != i18n.LANGUAGE and messagebox.askyesno(tr("Language"), tr("Restart now to apply the language?")):
-            updater.restart()
-            self.window.close()
 
     # ------------------------------------------------ checking for updates
 

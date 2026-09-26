@@ -21,6 +21,12 @@ from neural_net.storage import MODEL_FILE
 
 Z_EXPLANATION = tr("The weighted sum: every input value multiplied by its weight (the highlighted column "
                    "in the matrix), all added up, plus the bias.")
+BIAS_EXPLANATION = tr("The bias is a learned number that is always added, whatever the photo: it shifts the "
+                      "\"threshold\" of the neuron.")
+SHIFT_EXPLANATION = tr("The highest score is subtracted, so the biggest becomes 0 and the exponential doesn't "
+                       "explode, and it is divided by the temperature T.")
+EXPONENTIAL_EXPLANATION = tr("The exponential makes everything positive and widens the differences: the highest "
+                             "score is worth 1, the others less than 1.")
 
 
 class InsideTab(base.Tab):
@@ -79,6 +85,31 @@ class InsideTab(base.Tab):
             "the left, the values that go in. Below, lined up with the columns: bias, weighted sum z and activation; "
             "in the last layer the steps of the softmax. Move the mouse over a cell to see its math."),
             tr("The math of the layer"))
+        base.explain_charts(self.canvas, {
+            "input": (tr("The values that go in"), tr(
+                "One cell for each value that enters the layer: the pixels of the photo for layer 1, the outputs of "
+                "the layer before for the others. Orange = positive, blue = negative, dark = zero.")),
+            "matrix": (tr("The weight matrix"), tr(
+                "One row for every value that goes in, one column for every neuron. Orange = positive weight (it "
+                "pushes up), blue = negative (it pushes down). With \"input × weight\" each cell shows how much that "
+                "connection really counts for this photo."), base.chart_title),
+            "photo": (tr("The photo"), tr(
+                "The test photo that goes into the network. In layer 1 each pixel is one of the values that go in: "
+                "move the mouse over it to find its row in the matrix.")),
+            "bias": ("bias", BIAS_EXPLANATION),
+            "z": (tr("z = Σ input × weight + bias"), Z_EXPLANATION),
+            "activation": (tr("Activation"), tr(
+                "The output of each neuron: the activation function applied to z (with relu the negative values "
+                "become 0, the neuron is switched off). It is what goes into the next layer."),
+                lambda ax: self.net and self.net.activation),
+            "shift": ("(z − max) / T", SHIFT_EXPLANATION),
+            "exponential": (tr("e = exponential"), EXPONENTIAL_EXPLANATION),
+            "probability": ("p = e / Σe", tr(
+                "Every e divided by the sum of all of them: the 10 probabilities add up to 1. It is the final "
+                "answer of the network.")),
+            "bars": (tr("The last step as bars"), tr(
+                "The last row drawn as bars, one per neuron: in the output layer the 10 probabilities (the highest "
+                "in orange, the green border is the true digit), in the other layers the activations."))})
         self.canvas.mpl_connect("draw_event", self._save_background)
         self.canvas.mpl_connect("motion_notify_event", self._on_motion)
 
@@ -127,16 +158,13 @@ class InsideTab(base.Tab):
         z = x @ W + b
 
         # The steps of the math: (name, values, number format, explanation)
-        rows = [("bias", b, "{:+.2f}", tr("The bias is a learned number that is always added, whatever the "
-                                          "photo: it shifts the \"threshold\" of the neuron.")),
+        rows = [("bias", b, "{:+.2f}", BIAS_EXPLANATION),
                 (tr("z = Σ input × weight + bias"), z, "{:+.2f}", Z_EXPLANATION)]
         if output:
             T = base.power(self.temperature.get())
             shifted, e, p = softmax_steps(z, T)
-            rows += [("(z − max) / T", shifted, "{:+.2f}", tr("The highest score is subtracted, so the biggest "
-                      "becomes 0 and the exponential doesn't explode, and it is divided by the temperature T.")),
-                     (tr("e = exponential"), e, "{:.2f}", tr("The exponential makes everything positive and "
-                      "widens the differences: the highest score is worth 1, the others less than 1.")),
+            rows += [("(z − max) / T", shifted, "{:+.2f}", SHIFT_EXPLANATION),
+                     (tr("e = exponential"), e, "{:.2f}", EXPONENTIAL_EXPLANATION),
                      ("p = e / Σe", p, "{:.0%}", tr("Every e divided by the sum of all of them (Σe = {total:.3f}): "
                       "the 10 probabilities add up to 1. It is the final answer of the network.", total=e.sum()))]
             entropy = float(-(p * np.log2(p + 1e-12)).sum())
@@ -161,6 +189,9 @@ class InsideTab(base.Tab):
             self.structure = (k, contributions)
             self.axes = charts.layer_view(self.fig, len(x), rows,
                                           tr("input × weight") if contributions else tr("weights"), output)
+            steps = ["bias", "z"] + (["shift", "exponential", "probability"] if output else ["activation"])
+            for ax, step in zip(self.axes["rows"], steps):  # which step each row is: Pick explains it
+                ax.set_gid(step)
             self._create_boxes()
             self._fill(i, x, W, rows, contributions, output)
             self.canvas.draw()

@@ -27,6 +27,12 @@ DASHBOARD = ("epoch", "learning rate", "train loss", "validation loss", "train a
              "validation accuracy", "seconds per epoch")
 
 
+def _weights_now(ax):
+    """What a gaussian of the weights shows now (for Pick): which layer, and its μ and σ."""
+    legend = ax.get_legend()  # no legend if the weights exploded
+    return base.chart_title(ax) + (f"  ·  {legend.get_texts()[-1].get_text()}" if legend else "")
+
+
 class TrainingTab(base.Tab):
     title = tr("2 · Training")
 
@@ -167,6 +173,29 @@ class TrainingTab(base.Tab):
             "switch it on, blue = pixels that switch it off). At the bottom: the gaussians, that is how the "
             "weights of each layer are distributed now (orange) compared to the beginning (dashed)."),
             tr("Training charts"))
+        base.explain_charts(self.canvas, {
+            "loss": (tr("Loss curve"), tr(
+                "How much the network gets wrong, epoch after epoch (lower = better): the light line is every "
+                "single mini-batch, blue the training photos, orange the validation ones. If the orange goes back "
+                "up while the blue keeps going down, the network is learning by heart.")),
+            "accuracy": (tr("Accuracy curve"), tr(
+                "The share of photos guessed right at the end of every epoch: blue the training photos, orange the "
+                "validation ones. In the title, the last validation accuracy."), base.chart_title),
+            "corrections": (tr("Strength of the corrections"), tr(
+                "How big the corrections (gradients) of each layer are, epoch after epoch, on a logarithmic scale. "
+                "A line that collapses is a layer that stops learning, one that shoots up makes the network "
+                "unstable. In brackets, the share of inactive neurons."), base.chart_legend),
+            "first layer": (tr("What the first layer looks for"), tr(
+                "Each small square is a neuron of the first layer: its 784 weights redrawn as a 28x28 photo. Red = "
+                "pixels that switch it on, blue = pixels that switch it off. At the start it is noise; while the "
+                "network learns, the shapes of the strokes appear.")),
+            "weights": (tr("Gaussian of the weights"), tr(
+                "How the weights of this layer are distributed: the histogram, the gaussian now (orange) and the "
+                "one at the start (dashed). While learning it usually widens a little; if it explodes, the learning "
+                "rate is too high."), _weights_now),
+            "noise": (tr("Gaussian of the noise"), tr(
+                "The gaussian from which the noise added to each pixel of the training photos is drawn: the wider "
+                "it is (the bigger σ), the more spoiled the photos the network learns from."), base.chart_legend)})
 
     # ------------------------------------------------------------------ controls
 
@@ -328,13 +357,16 @@ class TrainingTab(base.Tab):
 
     def _show_preview(self):
         """8 photos as the network sees them now: with the chosen rotation, shift and noise."""
-        if self.examples is None:
-            return self.preview.config(image="")
         rng, p = np.random.default_rng(), self.params
-        X = add_noise(normalize(augment(self.examples, rng, p["rotation"], p["shift"])), p["noise"], rng)
+        if self.examples is None:  # no photos: 8 empty squares, crossed out
+            X = np.zeros((8, 784))
+        else:
+            X = add_noise(normalize(augment(self.examples, rng, p["rotation"], p["shift"])), p["noise"], rng)
         grid = charts.mosaic(X.reshape(-1, 28, 28) * 255, columns=8, border=1, empty=58).astype(np.uint8)
         image = Image.fromarray(grid)
         image = image.resize((int(image.width * 1.25), int(image.height * 1.25)), Image.Resampling.BILINEAR)
+        if self.examples is None:
+            image = base.crossed_out_image(image)
         self._preview_photo = ImageTk.PhotoImage(image)  # it must be kept, otherwise Tkinter deletes it
         self.preview.config(image=self._preview_photo)
 
