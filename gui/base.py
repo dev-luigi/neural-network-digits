@@ -9,14 +9,17 @@ import queue
 import threading
 import tkinter as tk
 import webbrowser
+from collections import namedtuple
 from tkinter import ttk
 
 import matplotlib
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from PIL import ImageDraw
 
 from i18n import tr
+from neural_net import charts
 
 # ---------------------------------------------------------------- colors (dark theme)
 BACKGROUND = "#14171c"
@@ -33,6 +36,9 @@ FONT = "Segoe UI"
 CONTROLS_WIDTH = 300
 PICK = "Pick"   # the binding tag of the controls with an explanation (see gui/pick.py)
 EXPLAINED = []  # the controls with an explanation: Pick can choose them, the assistant can search them
+# A piece of a control that Pick chooses on its own: one chart of a figure, one tile. value() = what it shows now
+# (or None), box = (x, y, width, height) in pixels of the control.
+Part = namedtuple("Part", "name text value box")
 
 
 def power(v):
@@ -119,6 +125,61 @@ def explain(widget, text, name="", value=None):
         if PICK not in w.bindtags():  # first of all the tags: while Pick is on, the clicks stop there
             w.bindtags((PICK,) + w.bindtags())
         to_bind.extend(w.winfo_children())
+
+
+def explain_charts(canvas, charts):
+    """Pick chooses the single charts of a matplotlib figure, not the whole figure.
+    charts = {gid: (name, text)} or {gid: (name, text, value)}: the gid is the one that neural_net/charts.py gives
+    to each chart (ax.set_gid) and value(ax) says what that chart shows now. If the figure has none of these charts
+    (for example it only writes a message) Pick takes the whole figure, with the explanation of explain()."""
+    widget = canvas.get_tk_widget()
+    places = []  # [(chart, its plot area, the area with title and labels too)] in pixels of the figure
+
+    def forget(_event):  # after every drawing the charts may have moved
+        places.clear()
+
+    def measure():
+        renderer = canvas.get_renderer()
+        for ax in canvas.figure.axes:
+            if ax.get_gid() in charts and ax.get_visible():
+                places.append((ax, ax.bbox.frozen(), ax.get_tightbbox(renderer)))
+
+    def part(x, y):
+        """The chart at the point (x, y) of the widget, None if the point is between two charts."""
+        if not places:
+            measure()
+        width, height = max(widget.winfo_width(), 1), max(widget.winfo_height(), 1)
+        if not places:
+            return Part(widget.pick_name, widget.pick_text, widget.pick_value, (0, 0, width, height))
+        # The figure has y going up and may be drawn with more pixels than the widget (screens with zoom)
+        scale = canvas.figure.bbox.width / width
+        x, y = x * scale, canvas.figure.bbox.height - y * scale
+        # First the plot areas, which never overlap; then also titles and labels
+        found = (next((p for p in places if p[1].contains(x, y)), None)
+                 or next((p for p in places if p[2].contains(x, y)), None))
+        if found is None:
+            return None
+        ax, _, box = found
+        name, text, value = (charts[ax.get_gid()] + (None,))[:3]
+        left, top = max(box.x0 / scale, 0), max((canvas.figure.bbox.height - box.y1) / scale, 0)
+        right, bottom = min(box.x1 / scale, width), min((canvas.figure.bbox.height - box.y0) / scale, height)
+        return Part(name, text, value and (lambda: value(ax)),
+                    (round(left), round(top), round(right - left), round(bottom - top)))
+
+    canvas.mpl_connect("draw_event", forget)
+    widget.pick_parts = part
+    widget.pick_entries = [(name, text) for name, text, *_ in charts.values()]
+
+
+def chart_title(ax):
+    """The title of a chart on one line (value for explain_charts)."""
+    return " ".join(ax.get_title().split())
+
+
+def chart_legend(ax):
+    """The texts of the legend of a chart (value for explain_charts)."""
+    legend = ax.get_legend()
+    return "   ".join(text.get_text() for text in legend.get_texts()) if legend else None
 
 
 def explained_controls():
@@ -317,16 +378,29 @@ class Tiles:
         self.frame.pack(fill="x", pady=(8, 0))
         columns = columns or len(names)
         self.values = {}
-        for k, name in enumerate(names):
+        for k, tile_name in enumerate(names):  # not "name": it would cover the name of the tiles as a whole
             tile = tk.Frame(self.frame, bg=PANEL, padx=10, pady=4)
             tile.grid(row=k // columns, column=k % columns, sticky="nsew", padx=(0, 6), pady=(0, 6))
-            tk.Label(tile, text=tr(name), bg=PANEL, fg=TEXT_SOFT, font=(FONT, 8)).pack(anchor="w")
-            self.values[name] = tk.Label(tile, text="-", bg=PANEL, fg=TEXT, font=(FONT, size, "bold"))
-            self.values[name].pack(anchor="w")
+            tk.Label(tile, text=tr(tile_name), bg=PANEL, fg=TEXT_SOFT, font=(FONT, 8)).pack(anchor="w")
+            self.values[tile_name] = tk.Label(tile, text="-", bg=PANEL, fg=TEXT, font=(FONT, size, "bold"))
+            self.values[tile_name].pack(anchor="w")
         for c in range(columns):
             self.frame.columnconfigure(c, weight=1, uniform="tiles")
         explain(self.frame, explanation, name or " · ".join(tr(n) for n in names[:3]),
                 lambda: "   ".join(f"{tr(n)}: {value.cget('text')}" for n, value in self.values.items()))
+        self.frame.pick_parts = self._tile_at  # Pick chooses one tile at a time
+        self.explanation = explanation
+
+    def _tile_at(self, x, y):
+        """The tile at the point (x, y) of the tiles, as a Part for Pick (None between two tiles)."""
+        for tile_name, value in self.values.items():
+            tile = value.master
+            box = (tile.winfo_x(), tile.winfo_y(), tile.winfo_width(), tile.winfo_height())
+            if box[0] <= x < box[0] + box[2] and box[1] <= y < box[1] + box[3]:
+                title = tr(tile_name)
+                return Part(title[:1].upper() + title[1:], self.explanation, lambda label=value: label.cget("text"),
+                            box)
+        return None
 
     def show(self, values):
         """values = {name: text}. The tiles not named stay as they are."""
@@ -341,7 +415,7 @@ class Bars:
     """Ten horizontal bars, one per digit, with the percentage on the right."""
 
     def __init__(self, parent, length=150, height=30):
-        self.length = length
+        self.length, self.height = length, height
         self.canvas = tk.Canvas(parent, width=length + 76, height=10 * height, bg=BACKGROUND, highlightthickness=0)
         self.canvas.pack(anchor="w", pady=(4, 0))
         self.bars = []
@@ -354,11 +428,15 @@ class Bars:
             self.bars.append((bar, text, y))
 
     def show(self, values, colors):
-        """values: 10 numbers between 0 and 1 (None = empty bar); colors: the color of each bar."""
+        """values: 10 numbers between 0 and 1 (None = empty bar); colors: the color of each bar.
+        All empty: the bars are crossed out."""
         for (bar, text, y), value, color in zip(self.bars, values, colors):
             self.canvas.coords(bar, 24, y - 8, 24 + self.length * (value or 0), y + 8)
             self.canvas.itemconfig(bar, fill=color)
             self.canvas.itemconfig(text, text="" if value is None else f"{value:.0%}")
+        self.canvas.delete("empty")
+        if all(value is None for value in values):
+            cross_out(self.canvas, 24, self.height / 2 - 8, 24 + self.length, 9.5 * self.height + 8)
 
 
 def figure(parent):
@@ -371,9 +449,29 @@ def figure(parent):
 
 
 def message(fig, text):
-    """Empties the figure and writes only a message in the middle."""
+    """Empties the figure and writes only a message in the middle, on a thin X: there is nothing to show."""
     fig.clear()
-    fig.text(0.5, 0.5, text, ha="center", va="center", color=TEXT_SOFT, fontsize=13)
+    charts.crossed_out(fig, text, color=TEXT_SOFT, fontsize=13)
+
+
+def cross_out(canvas, x0, y0, x1, y1, frame=False):
+    """The empty state of a chart drawn in Tk, like charts.crossed_out(): a thin X from corner to corner of the
+    rectangle (and its edge, if frame=True). Everything has the tag "empty", to delete it when there is data."""
+    for line in ((x0, y0, x1, y1), (x0, y1, x1, y0)):
+        canvas.create_line(*line, fill=BORDER, tags="empty")
+    if frame:
+        canvas.create_rectangle(x0, y0, x1, y1, outline=BORDER, tags="empty")
+
+
+def crossed_out_image(image):
+    """The same X on an image (PIL) that has nothing to show. Returns a crossed out copy, in color (in a grey image
+    the X would lose its color)."""
+    image = image.convert("RGB")
+    draw = ImageDraw.Draw(image)
+    width, height = image.size
+    for line in ((0, 0, width - 1, height - 1), (0, height - 1, width - 1, 0)):
+        draw.line(line, fill=BORDER)
+    return image
 
 
 # ---------------------------------------------------------------- tabs and long jobs

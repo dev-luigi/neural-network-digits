@@ -1,14 +1,18 @@
 """The interface opens, every tab shows up without errors, the update dialog works, the assistant and Pick work.
 It needs a screen: without one (for example on a server) these tests are skipped."""
 import gc
+import time
 import tkinter as tk
 
+import numpy as np
 import pytest
+from matplotlib.figure import Figure
+from PIL import Image, ImageColor
 
 from assistant import knowledge, rules
 from gui import base
-from gui.assistant import WIDTH
-from neural_net import storage
+from gui.assistant import FRAME, MOST_FRAMES, THINKING, WIDTH
+from neural_net import charts, storage
 from project import VERSION
 
 
@@ -33,6 +37,15 @@ def window(tmp_path, monkeypatch):
     window.errors = errors
     yield window
     root.destroy()
+
+
+def answered(window, limit=3.0):
+    """Waits until the assistant has written its answer (after the "thinking" animation). Returns the seconds."""
+    start = time.perf_counter()
+    while window.assistant.waiting is not None and time.perf_counter() - start < limit:
+        window.root.update()
+        time.sleep(0.005)
+    return time.perf_counter() - start
 
 
 def test_every_tab_opens(window):
@@ -67,6 +80,7 @@ def test_assistant_panel(window):
     if room:  # the window gets wider, so the tabs keep their space...
         assert window.root.winfo_width() == width + WIDTH
     panel.ask("what is the learning rate?")
+    answered(window)
     assert "How big each correction of the weights is" in panel.chat.get("1.0", "end")
     window.toggle_assistant(False)
     window.root.update()
@@ -92,6 +106,7 @@ def test_pick_explains_a_control_without_pressing_it(window):
     window.picker.set(True)
     assert window.assistant.visible  # the explanations of Pick appear in the panel
     click()
+    answered(window)
     assert pressed == []
     assert "Pick: Try me\nTry me\nA button to try Pick." in window.assistant.chat.get("1.0", "end")
     window.picker.show(button)  # the orange frame around the control
@@ -100,6 +115,129 @@ def test_pick_explains_a_control_without_pressing_it(window):
     assert window.picker.target is None and not any(border.place_info() for border in window.picker.borders)
     click()
     assert pressed == [True]
+    assert not window.errors
+
+
+def test_the_answer_comes_after_a_short_animation(window):
+    panel = window.assistant
+    window.toggle_assistant(True)
+    assert MOST_FRAMES * FRAME <= 600  # the wait is never longer than 0.6 seconds
+    frames = {frame for animation in THINKING for frame in animation}
+
+    panel.ask("what is the learning rate?")
+    last_line = panel.chat.get("end-2l", "end").strip()
+    assert panel.waiting is not None and last_line in frames  # first the animation, then the answer
+    assert "How big each correction" not in panel.chat.get("1.0", "end")
+    assert panel.check_hints({"tab": "training", "training": {"params": {"noise": 0.5}}}) == []  # hints wait too
+
+    panel.ask("what is overfitting?")  # a new question: the answer of the one before is written first
+    chat = panel.chat.get("1.0", "end")
+    assert chat.index("How big each correction") < chat.index("what is overfitting?")
+    assert answered(window) < 2  # 0.6 seconds, plus the slowness of the test machines
+    chat = panel.chat.get("1.0", "end")
+    assert "Overfitting" in chat and chat.strip().splitlines()[-1] not in frames  # the animation is gone
+    assert not window.errors
+
+
+def test_pick_chooses_one_chart_of_a_figure(window):
+    tab, widget = window.evaluation_tab, window.evaluation_tab.canvas.get_tk_widget()
+    tab.needs_update = False  # the tab must not draw the saved model (if there is one): the test draws its charts
+    window.tabs.select(2)
+    window.root.update()
+    # A figure without charts (empty, or only a message): Pick takes the whole figure
+    assert widget.pick_parts(10, 10) == base.Part("Evaluation charts", widget.pick_text, None,
+                                                  (0, 0, widget.winfo_width(), widget.winfo_height()))
+
+    rng = np.random.default_rng(0)
+    photos, digits, probabilities = rng.random((40, 28, 28)), np.arange(40) % 10, rng.dirichlet(np.ones(10), 40)
+    charts.evaluation(tab.fig, photos, digits, probabilities, {"noise": (np.linspace(0, 0.6, 13), rng.random(13)),
+                                                               "rotation": None})
+    tab.canvas.draw()
+    window.root.update()
+
+    def middle(box):  # from pixels of the figure (y going up) to pixels of the widget (y going down)
+        scale = tab.fig.bbox.width / widget.winfo_width()
+        return round((box.x0 + box.width / 2) / scale), round((tab.fig.bbox.height - box.y0 - box.height / 2) / scale)
+
+    def chart(gid):
+        return next(ax for ax in tab.fig.axes if ax.get_gid() == gid)
+
+    x, y = middle(chart("wrong photo").bbox)
+    part = widget.pick_parts(x, y)
+    assert part.name == "A wrong photo" and part.value() == " ".join(chart("wrong photo").get_title().split())
+    left, top, width, height = part.box
+    assert left <= x <= left + width and top <= y <= top + height and width < widget.winfo_width() / 4
+    assert widget.pick_parts(*middle(chart("confusion").bbox)).name == "Confusion matrix"
+    assert widget.pick_parts(*middle(chart("rotation curve").bbox)).name == "Accuracy with more rotation"
+    assert widget.pick_parts(*middle(tab.fig.subfigs[1]._suptitle.get_window_extent())) is None  # between charts
+
+    # With Pick on the frame follows the mouse from chart to chart, and a click explains only that chart
+    window.picker.set(True)
+    x, y = middle(chart("noise curve").bbox)
+    for event in ("<Enter>", "<Motion>", "<Button-1>", "<ButtonRelease-1>"):
+        widget.event_generate(event, x=x, y=y)
+    window.root.update()
+    assert window.picker.target is widget and window.picker.part.name == "Accuracy with more noise"
+    assert all(border.place_info() for border in window.picker.borders)
+    answered(window)
+    assert "Pick: Accuracy with more noise\nAccuracy with more noise\nThe accuracy on the test photos as the noise" \
+        in window.assistant.chat.get("1.0", "end")
+    x, y = middle(chart("confusion").bbox)
+    widget.event_generate("<Motion>", x=x, y=y)
+    assert window.picker.part.name == "Confusion matrix"
+    window.picker.set(False)
+    assert not window.errors
+
+
+def test_pick_chooses_one_tile(window):
+    window.tabs.select(1)
+    window.root.update()
+    tiles = window.training_tab.dashboard
+    assert base.control_name(tiles.frame) == "Numbers of the last epoch"  # not the name of the last tile
+    tile = tiles.values["validation accuracy"].master
+    part = tiles.frame.pick_parts(tile.winfo_x() + 5, tile.winfo_y() + 5)
+    assert part.name == "Validation accuracy" and part.value() == "-" and part.text == tiles.explanation
+    assert part.box == (tile.winfo_x(), tile.winfo_y(), tile.winfo_width(), tile.winfo_height())
+
+
+def test_the_empty_charts_are_crossed_out(window):
+    border = ImageColor.getrgb(base.BORDER)
+    bars = base.Bars(tk.Frame(window.root))
+    bars.show([None] * 10, [base.ACCENT] * 10)  # no answer yet: a thin X on the bars
+    assert len(bars.canvas.find_withtag("empty")) == 2
+    bars.show([0.1] * 10, [base.ACCENT] * 10)
+    assert not bars.canvas.find_withtag("empty")
+
+    image = base.crossed_out_image(Image.new("L", (20, 10)))  # a grey photo: the X keeps its color
+    assert image.getpixel((0, 0)) == image.getpixel((19, 9)) == image.getpixel((19, 0)) == border
+    tab = window.training_tab
+    tab.examples = None  # no photos: the preview is crossed out too
+    tab._show_preview()
+    assert tuple(int(v) for v in window.root.tk.splitlist(window.root.tk.call(str(tab._preview_photo), "get", 0, 0))) \
+        == border
+
+    fig = Figure()
+    base.message(fig, "Nothing to show")  # a whole figure with nothing to show
+    assert [text.get_text() for text in fig.texts] == ["Nothing to show"] and len(fig.artists) == 2
+    assert not window.errors
+
+
+def test_the_charts_can_be_found_by_the_assistant(window):
+    reply = window.assistant.brain().answer("what does the gaussian of the weights show?", {"tab": "training"})
+    assert reply.title == "Gaussian of the weights"
+
+
+def test_the_language_is_chosen_next_to_pick(window, monkeypatch):
+    window.root.update()
+    languages = window.pick_button.master.winfo_children()[0]
+    buttons = {button.cget("text"): button for button in languages.winfo_children()
+               if isinstance(button, tk.Radiobutton)}
+    assert list(buttons) == ["EN", "IT"] and window.language.get() == "en"
+    assert languages.winfo_x() + languages.winfo_width() <= window.pick_button.winfo_x()  # on its left
+    asked = []
+    monkeypatch.setattr("tkinter.messagebox.askyesno", lambda *question: asked.append(question) or False)
+    buttons["IT"].invoke()
+    assert storage.settings()["language"] == "it" and asked  # saved, and it offers to restart (here: not now)
     assert not window.errors
 
 

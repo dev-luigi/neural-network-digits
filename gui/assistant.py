@@ -6,7 +6,10 @@ The assistant panel, on the right of the window (F2 opens and closes it): a smal
   - Hints: every second the rules of assistant/rules.py look at the state. A new problem shows up in the chat
     with a link that fixes it with one click; with the panel closed, the Assistant button counts the new ones.
   - Pick (F1, see gui/pick.py): the clicked control ends up here, explained, with what it is worth now.
+Before every answer a short "thinking" animation (at most 0.6 seconds, different every time): the answer is
+already ready, the pause only makes it easier to see where the new text starts.
 """
+import random
 import tkinter as tk
 import traceback
 from tkinter import ttk
@@ -20,6 +23,13 @@ from neural_net import storage
 
 WIDTH = 360
 CHECK_EVERY = 1000  # milliseconds between one look at the hints and the next
+FRAME = 100         # milliseconds of each frame of the "thinking" animation...
+MOST_FRAMES = 6     # ...and at most 6 frames: the wait is never longer than 0.6 seconds
+THINKING = (("●  ○  ○", "○  ●  ○", "○  ○  ●", "○  ●  ○"),  # the animations, one chosen at random each time
+            ("•", "•  •", "•  •  •", "•  •"),
+            ("◐", "◓", "◑", "◒"),
+            ("▁ ▃ ▅", "▃ ▅ ▇", "▅ ▇ ▅", "▇ ▅ ▃", "▅ ▃ ▁", "▃ ▁ ▃"),
+            ("◜", "◝", "◞", "◟"))
 
 
 class AssistantPanel:
@@ -30,6 +40,8 @@ class AssistantPanel:
         self.unread = 0
         self.shown_hints = set()    # the hints already in the chat: they are written again only if they come back
         self.links = 0              # every link in the chat has its own tag: link1, link2...
+        self.waiting = None         # the reply ready to be written at the end of the animation
+        self.next_frame = self.next_check = None
 
         self.frame = tk.Frame(window.root, bg=base.PANEL, width=WIDTH)
         self.frame.pack_propagate(False)  # fixed width, whatever the length of the texts
@@ -80,8 +92,10 @@ class AssistantPanel:
                 ("hint title", dict(foreground=base.RED, font=(base.FONT, 9, "bold"), spacing1=8)),
                 ("hint", dict(foreground=base.TEXT, lmargin1=10, lmargin2=10)),
                 ("link", dict(foreground=base.BLUE, lmargin1=10, lmargin2=10)),
-                ("small", dict(foreground=base.TEXT_SOFT, font=(base.FONT, 8)))):
+                ("small", dict(foreground=base.TEXT_SOFT, font=(base.FONT, 8))),
+                ("thinking", dict(foreground=base.ACCENT, font=(base.FONT, 14), spacing1=6))):
             self.chat.tag_config(tag, **options)
+        self.frame.bind("<Destroy>", self._stop_timers)
 
     # ------------------------------------------------------------------ opening, tabs, hints
 
@@ -116,16 +130,19 @@ class AssistantPanel:
                 traceback.print_exc()
                 return
             self.next_check = self.frame.after(CHECK_EVERY, loop)
-
-        def stop(event):
-            if event.widget is self.frame:
-                self.frame.after_cancel(self.next_check)
         self.next_check = self.frame.after(CHECK_EVERY, loop)
-        self.frame.bind("<Destroy>", stop)
+
+    def _stop_timers(self, event):
+        """The window closes: the hints loop and the animation must not call a panel that no longer exists."""
+        if event.widget is self.frame:
+            for timer in (self.next_check, self.next_frame):
+                if timer:
+                    self.frame.after_cancel(timer)
 
     def check_hints(self, state=None):
-        """Writes in the chat the hints that were not there before. Returns the new ones."""
-        if not self.hints_on.get():
+        """Writes in the chat the hints that were not there before. Returns the new ones.
+        During the animation of an answer it waits: they will be written at the next look."""
+        if not self.hints_on.get() or self.waiting:
             return []
         active = rules.hints(state or self.state())
         new = [hint for hint in active if hint.key not in self.shown_hints]
@@ -150,12 +167,14 @@ class AssistantPanel:
         return app_state(self.window)
 
     def brain(self):
-        """A new Assistant every time: this way it also knows the controls created in the meantime."""
+        """A new Assistant every time: this way it also knows the controls created in the meantime,
+        and each chart of the figures (see base.explain_charts)."""
         controls = []
         for widget in base.explained_controls():
             tab = self.tab_of(widget)
             if tab:
                 controls.append((base.control_name(widget) or knowledge.tab_name(tab), widget.pick_text, tab))
+                controls += [(name, text, tab) for name, text in getattr(widget, "pick_entries", ())]
         return Assistant(controls)
 
     def tab_of(self, widget):
@@ -176,23 +195,64 @@ class AssistantPanel:
         question = question.strip()
         if not question:
             return
+        self.finish_thinking()
         self._write(question + "\n", "you")
-        self.show(self.brain().answer(question, self.state()))
+        self.think(self.brain().answer(question, self.state()))
 
-    def explain_control(self, widget):
-        """Pick: the explanation of the clicked control, with what it is worth now and the related concepts."""
+    def explain_control(self, widget, part=None):
+        """Pick: the explanation of the clicked control, with what it is worth now and the related concepts.
+        part = the single piece that was clicked (a chart of a figure, a tile: see base.Part), if any."""
         state, brain = self.state(), self.brain()
         tab = self.tab_of(widget) or state["tab"]
-        name = base.control_name(widget) or knowledge.tab_name(tab)
+        if part is not None:
+            name, text, value = part.name, part.text, part.value
+        else:
+            name = base.control_name(widget) or knowledge.tab_name(tab)
+            text, value = widget.pick_text, widget.pick_value
         try:
-            value = widget.pick_value() if widget.pick_value else None
+            value = value() if value else None
         except tk.TclError:
             value = None
-        related = [(score, document) for score, document in brain.search(f"{name} {widget.pick_text}", tab)
+        related = [(score, document) for score, document in brain.search(f"{name} {text}", tab)
                    if document.kind == "concept"]
+        self.finish_thinking()
         self._write(tr("Pick: {name}", name=name) + "\n", "you")
-        self.show(brain.document_reply(Document("control", "", name, widget.pick_text, tab, ""), state,
-                                       related=related, value=value))
+        self.think(brain.document_reply(Document("control", "", name, text, tab, ""), state, related=related,
+                                        value=value))
+
+    # ------------------------------------------------------------------ the "thinking" animation
+
+    def think(self, reply):
+        """Shows the reply after a short animation: every time a different one, for 0.3 to 0.6 seconds."""
+        self.finish_thinking()
+        self.waiting = reply
+        frames, count = random.choice(THINKING), random.randint(3, MOST_FRAMES)
+        first = random.randrange(len(frames))
+        self.chat.mark_set("thinking", "end-1c")
+        self.chat.mark_gravity("thinking", "left")  # it stays before the frames written after it
+
+        def step(k):
+            if k == count:
+                return self.finish_thinking()
+            self._clear_thinking()
+            self._write(frames[(first + k) % len(frames)] + "\n", "thinking")
+            self._scroll()
+            self.next_frame = self.frame.after(FRAME, step, k + 1)
+        step(0)
+
+    def finish_thinking(self):
+        """Stops the animation (if there is one) and writes the reply that was waiting."""
+        if self.waiting is None:
+            return
+        self.frame.after_cancel(self.next_frame)
+        self._clear_thinking()
+        reply, self.waiting = self.waiting, None
+        self.show(reply)
+
+    def _clear_thinking(self):
+        self.chat.config(state="normal")
+        self.chat.delete("thinking", "end-1c")  # the animation is always the last thing in the chat
+        self.chat.config(state="disabled")
 
     # ------------------------------------------------------------------ writing in the chat
 
@@ -222,10 +282,11 @@ class AssistantPanel:
 
     def explain_concept(self, key):
         brain = self.brain()
-        self.show(brain.document_reply(brain.concept(key), self.state()))
+        self.think(brain.document_reply(brain.concept(key), self.state()))
 
     def apply(self, hint):
         """Does the steps of the fix of a hint (see assistant/rules.py)."""
+        self.finish_thinking()
         training = self.window.training_tab
         for step in hint.fix:
             if step[0] == "set":
@@ -244,6 +305,7 @@ class AssistantPanel:
 
     def write_note(self, text):
         """A small grey line in the chat (for example: Pick is on)."""
+        self.finish_thinking()
         self._write(text + "\n", "small")
         self._scroll()
 

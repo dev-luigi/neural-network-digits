@@ -30,7 +30,7 @@
 A small neural network written **from scratch in Python + NumPy** (no PyTorch or TensorFlow) that learns
 to recognize the handwritten digits of the MNIST dataset, with an **educational graphical interface** to
 watch it learn, change its parameters while it learns and get your hands inside the trained network.
-The interface is available in English and Italian (language selector in the **Info** tab).
+The interface is available in English and Italian (the **EN | IT** selector at the top right, next to Pick).
 
 ---
 
@@ -110,8 +110,9 @@ happening in it:
   learning rate in use, the photos downloaded, the drawing on the board. Every answer also says where to see
   that thing in the program and suggests an experiment to try.
 - **Pick** (**F1**): hover the controls and they get an orange frame; click one and the assistant explains what it
-  does and what it is worth now. While Pick is on, the clicks do not reach the controls, so nothing starts by
-  mistake.
+  does and what it is worth now. The charts are picked one at a time (the loss curve, one gaussian, one wrong
+  photo, one row of the math...), and so are the tiles with the numbers. While Pick is on, the clicks do not
+  reach the controls, so nothing starts by mistake.
 - **Hints** (they can be switched off): the assistant notices the most common mistakes, like a learning rate
   that is too high (the network explodes or does not learn), overfitting, too many inactive neurons, extreme
   settings, or test photos spoiled much more than the training ones. Each hint has an *Apply* link that
@@ -120,7 +121,7 @@ happening in it:
 It is not a language model, on purpose: the answers come from a small search engine (TF-IDF, written in NumPy
 in [`assistant/search.py`](assistant/search.py)) over a glossary of neural networks and the explanations of
 the controls, and the hints are simple rules ([`assistant/rules.py`](assistant/rules.py)). It needs nothing
-to download, it answers instantly and it never makes things up about the numbers it reads.
+to download, it answers in a moment and it never makes things up about the numbers it reads.
 
 ![The assistant — the state of the training, Pick on the Dropout control and a hint with its fix](docs/7_assistant.png)
 

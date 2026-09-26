@@ -202,9 +202,13 @@ class DrawingBoard:
                 self.activations = [a[0] for a in self.net.forward(inputs[None])]
 
         pixels = Image.fromarray((inputs.reshape(28, 28) * 255).astype(np.uint8))
-        self._preview_photo = ImageTk.PhotoImage(pixels.resize((140, 140), Image.Resampling.NEAREST))
+        preview = pixels.resize((140, 140), Image.Resampling.NEAREST)
+        small = pixels.resize((INPUT_SIDE,) * 2, Image.Resampling.NEAREST)
+        if photo28 is None:  # nothing drawn: the photo that goes in is crossed out
+            preview, small = base.crossed_out_image(preview), base.crossed_out_image(small)
+        self._preview_photo = ImageTk.PhotoImage(preview)
         self.preview.config(image=self._preview_photo)
-        self._input_photo = ImageTk.PhotoImage(pixels.resize((INPUT_SIDE,) * 2, Image.Resampling.NEAREST))
+        self._input_photo = ImageTk.PhotoImage(small)
         self.diagram.itemconfig(self.input_id, image=self._input_photo)
         self._color()
         self._show_answer()

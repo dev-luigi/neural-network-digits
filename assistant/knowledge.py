@@ -217,9 +217,15 @@ def concepts():
                 tr("assistant, pick, hints, suggestions, help, questions, how do you work, search, tf-idf"),
                 tr("I answer questions about the program and about neural networks, I see the state of the tab you "
                    "are in and, if Hints is on, I tell you when something looks wrong. With Pick (F1) move the mouse "
-                   "over the controls and click one: I explain what it does and what it is worth now. I am not a "
-                   "language model: I compare the words of your question with my texts (TF-IDF, a small search "
-                   "engine written with NumPy, in assistant/search.py)."),
+                   "over the controls or the charts and click one: I explain what it does and what it is worth now. "
+                   "I am not a language model: I compare the words of your question with my texts (TF-IDF, a small "
+                   "search engine written with NumPy, in assistant/search.py)."),
+                "info", ""),
+        Concept("language", tr("Language of the program"),
+                tr("language, change the language, english, italian, translation, translated"),
+                tr("The program speaks English and Italian: choose EN or IT at the top right, next to Pick. The "
+                   "language is applied when the program starts again, and it offers to restart it right away. I "
+                   "understand the questions in both languages, whatever the one in use."),
                 "info", ""),
     ]
 
@@ -243,7 +249,8 @@ def tab_description(tab):
         "inside": tr("The math of one layer, number by number, for a test photo: inputs, weight matrix, bias, "
                      "weighted sum, activation and, in the last layer, the steps of the softmax. Move the mouse over "
                      "the cells to see the math."),
-        "info": tr("Version, author, license, language, updates and the changelog of every version."),
+        "info": tr("Version, author, license, updates and the changelog of every version. The language is chosen "
+                   "at the top right, next to Pick: EN or IT."),
     }[tab]
 
 

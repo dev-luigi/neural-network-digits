@@ -39,6 +39,20 @@ def gaussian(x, mean, sigma):
     return np.exp(-0.5 * ((x - mean) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
 
 
+def crossed_out(where, text="", **text_options):
+    """The empty state of a chart, or of a whole figure: a thin X from corner to corner and, if there is one, a short
+    text in the middle (on its own small background, so the lines do not cross it). where = an Axes or a Figure."""
+    axes = hasattr(where, "transAxes")
+    transform = where.transAxes if axes else where.transFigure
+    for ends in ([0, 1], [1, 0]):  # add_artist and not plot: the X must not change the limits of the chart
+        where.add_artist(Line2D([0, 1], ends, transform=transform, color=rcParams["axes.edgecolor"], lw=0.8))
+    if text:
+        background = rcParams["axes.facecolor" if axes else "figure.facecolor"]
+        where.text(0.5, 0.5, text, transform=transform, ha="center", va="center",
+                   bbox=dict(boxstyle="round,pad=0.4", facecolor=background, edgecolor="none"),
+                   **{"fontsize": 9, **text_options})
+
+
 def _finite(values):
     """Replaces the infinities with "empty" (NaN), which matplotlib skips: needed if the network explodes."""
     values = np.asarray(values, dtype=float)
@@ -60,6 +74,7 @@ def exploration(fig, photos, digits, test_photos, test_digits, title=None):
         of_digit = photos[digits == digit][:10]
         examples[digit, :len(of_digit)] = of_digit
     ax.imshow(mosaic(examples.reshape(-1, 28, 28), 10), cmap="gray")
+    ax.set_gid("samples")  # the name of each chart: Pick (gui/pick.py) uses it to explain that chart
     ax.set_title(tr("10 sample photos for each digit"))
     ax.set_yticks(np.arange(10) * 28 + 14, labels=range(10))
     ax.set_xticks([])
@@ -67,18 +82,19 @@ def exploration(fig, photos, digits, test_photos, test_digits, title=None):
     ax = fig.add_subplot(grid[0, 1])
     ax.bar(np.arange(10) - 0.2, np.bincount(digits, minlength=10), width=0.4, label="train")
     ax.bar(np.arange(10) + 0.2, np.bincount(test_digits, minlength=10), width=0.4, label="test")
-    ax.set(title=tr("How many photos per digit"), xlabel=tr("digit"), xticks=range(10))
+    ax.set(title=tr("How many photos per digit"), xlabel=tr("digit"), xticks=range(10), gid="per digit")
     ax.legend()
 
     ax = fig.add_subplot(grid[0, 2])
     ax.imshow(mosaic(np.stack([photos[digits == d].mean(axis=0) for d in range(10)]), 5), cmap="magma")
     ax.set_title(tr("The \"average digit\" of each class"))
+    ax.set_gid("average digit")
     ax.axis("off")
 
     ax = fig.add_subplot(grid[1, 1:])
     ax.hist(photos.ravel(), bins=64, color="C0")
     ax.set(yscale="log", title=tr("Pixel values (log scale): almost all black (0), the stroke is close to 255"),
-           xlabel=tr("pixel value (0 = black, 255 = white)"), ylabel=tr("number of pixels"))
+           xlabel=tr("pixel value (0 = black, 255 = white)"), ylabel=tr("number of pixels"), gid="pixel values")
 
 
 # ---------------------------------------------------------------- training
@@ -98,6 +114,8 @@ def training(fig, state, noise=None, title=None):
     bottom.suptitle(tr("The gaussians: how the weight values are distributed") if noise is None else
                     tr("The gaussians: how the weight and noise values are distributed"), fontsize=11)
     epochs = np.arange(1, len(history["val_acc"]) + 1)
+    for ax, name in ((ax_loss, "loss"), (ax_acc, "accuracy"), (ax_grad, "corrections"), (ax_map, "first layer")):
+        ax.set_gid(name)
 
     # Loss curve: the light line is every single mini-batch, the thick ones the end of each epoch
     ax_loss.plot(history["batch_x"], _finite(history["batch_loss"]), color="C0", alpha=0.25, lw=0.8,
@@ -128,8 +146,10 @@ def training(fig, state, noise=None, title=None):
         ax.grid(alpha=0.3)
         if len(epochs):
             ax.legend(fontsize=7)
-    if not len(epochs):
-        ax_loss.text(0.5, 0.5, tr("press Start to begin"), transform=ax_loss.transAxes, ha="center", alpha=0.6)
+    if not len(epochs):  # no epoch done yet: the three curves are empty
+        crossed_out(ax_loss, tr("press Start to begin"), alpha=0.8)
+        crossed_out(ax_acc)
+        crossed_out(ax_grad)
 
     _first_layer_map(ax_map, weights[0])
     for number, (ax, W, W0) in enumerate(zip(axes, weights, initial_weights), start=1):
@@ -151,14 +171,14 @@ def _first_layer_map(ax, W):
 
 def _weights_gaussian(ax, W, W0, number):
     """Histogram of the weights of one layer, with the current gaussian and the starting one."""
+    ax.set_gid("weights")
     ax.set_title(tr("Weights of layer {number}  ({n_in} → {n_out})", number=number, n_in=W.shape[0],
                     n_out=W.shape[1]), fontsize=10)
     ax.set_yticks([])
     ax.set_xlabel(tr("weight value"), fontsize=9)
     W, W0 = W.ravel(), W0.ravel()
     if not np.all(np.isfinite(W)):
-        ax.text(0.5, 0.5, tr("weights exploded!\nlearning rate too high"), transform=ax.transAxes,
-                ha="center", va="center", color="C3", fontsize=11)
+        crossed_out(ax, tr("weights exploded!\nlearning rate too high"), color="C3", fontsize=11)
         return
     mean, sigma, sigma0 = W.mean(), W.std(), W0.std()
     limit = max(4 * sigma0, np.percentile(np.abs(W), 99.5))
@@ -172,12 +192,12 @@ def _weights_gaussian(ax, W, W0, number):
 
 def _noise_gaussian(ax, sigma):
     """The gaussian from which the noise added to each pixel is drawn."""
+    ax.set_gid("noise")
     ax.set(title=tr("Noise added to each pixel"), xlim=(-1, 1), xticks=[-1, -0.5, 0, 0.5, 1], yticks=[])
     ax.title.set_fontsize(10)
     ax.set_xlabel(tr("pixel change (0-1 scale)"), fontsize=9)
-    if sigma <= 0:
-        ax.axvline(0, color="C2", lw=2)
-        ax.text(0.5, 0.75, tr("σ = 0: no noise"), transform=ax.transAxes, ha="center", fontsize=9)
+    if sigma <= 0:  # no noise: nothing to draw
+        crossed_out(ax, tr("σ = 0: no noise"))
         return
     x = np.linspace(-1, 1, 300)
     ax.fill_between(x, gaussian(x, 0, sigma), color="C2", alpha=0.3)
@@ -203,9 +223,9 @@ def evaluation(fig, photos, digits, probabilities, curves=None, current=None, ti
     if curves:
         axes = left.subplot_mosaic([["confusion", "confusion"], ["noise", "rotation"]], height_ratios=[2.2, 1])
         for name, label in (("noise", tr("noise σ")), ("rotation", tr("rotation (degrees)"))):
-            if curves[name] is None:
-                axes[name].text(0.5, 0.5, tr("computing..."), transform=axes[name].transAxes, ha="center",
-                                va="center", alpha=0.7)
+            axes[name].set_gid(name + " curve")
+            if curves[name] is None:  # still being computed
+                crossed_out(axes[name], tr("computing..."), alpha=0.8)
                 axes[name].set(xticks=[], yticks=[], xlabel=label)
             else:
                 _robustness_curve(axes[name], *curves[name], label, (current or {}).get(name))
@@ -228,22 +248,26 @@ def evaluation(fig, photos, digits, probabilities, curves=None, current=None, ti
                     color = "white" if confusion[real, said] > confusion.max() / 2 else "black"
                     ax.text(said, real, confusion[real, said], ha="center", va="center", color=color, fontsize=9)
         ax.set(xticks=range(10), yticks=range(10), xlabel=tr("digit said by the network"), ylabel=tr("true digit"),
-               title=tr("Confusion matrix (the right answers are on the diagonal)"))
+               title=tr("Confusion matrix (the right answers are on the diagonal)"), gid="confusion")
 
     # The wrong photos (at most 24)
     errors = np.flatnonzero(predicted != digits)
     shown = errors[:24]
     right.suptitle(tr("Wrong photos: {n} (the first 24)", n=len(errors)) if len(errors) > 24 else
                    tr("Wrong photos: {n}", n=len(errors)))
-    error_axes = right.subplots(max(1, int(np.ceil(len(shown) / 6))), 6, squeeze=False).ravel()
+    if not len(errors):  # no photo to show
+        ax = right.subplots()
+        ax.set(xticks=[], yticks=[])
+        crossed_out(ax, tr("No mistakes!"), fontsize=14)
+        return big
+    error_axes = right.subplots(int(np.ceil(len(shown) / 6)), 6, squeeze=False).ravel()
     for ax in error_axes:
         ax.axis("off")
     for ax, i in zip(error_axes, shown):
         ax.imshow(photos[i], cmap="gray")
+        ax.set_gid("wrong photo")
         ax.set_title(tr("true {true}, said {said}\n({confidence:.0%} sure)", true=digits[i], said=predicted[i],
                         confidence=probabilities[i].max()), fontsize=8, color="crimson")
-    if not len(errors):
-        error_axes[0].text(0, 0.5, tr("No mistakes!"), fontsize=14)
     return big
 
 
@@ -326,15 +350,15 @@ def _tsne(X, start, perplexity=30, steps=350):
 def _points_map(ax, points_map, digits, predicted, all_photos):
     """Each test photo is a point colored with its true digit. The wrong photos have the red ring
     and a line towards the center of the group of the digit the network said: you can see "where" it gets confused."""
+    ax.set_gid("points map")
     ax.set_title(tr("Map of points · {name} · {method}\neach point is a test photo: close = the network sees "
                     "them as similar", name=points_map["name"], method=points_map["method"]), fontsize=10)
     if len(digits) < all_photos:
         ax.text(0.99, 0.01, tr("{shown} photos out of {total}, chosen at random", shown=len(digits), total=all_photos),
                 transform=ax.transAxes, ha="right", va="bottom", fontsize=7, alpha=0.7)
     points = points_map["points"]
-    if points is None:
-        ax.text(0.5, 0.5, tr("computing the map ({method})...", method=points_map["method"]),
-                transform=ax.transAxes, ha="center", va="center", alpha=0.7)
+    if points is None:  # still being computed
+        crossed_out(ax, tr("computing the map ({method})...", method=points_map["method"]), alpha=0.8)
         ax.set(xticks=[], yticks=[])
         return
     right = predicted == digits
@@ -380,6 +404,8 @@ def layer_view(fig, n_in, rows, matrix_title, with_true_digit=False):
     axes["rows"] = [fig.add_subplot(grid[1 + r, 1], sharex=axes["matrix"]) for r in range(len(rows))]
     axes["bars"] = fig.add_subplot(grid[-1, 1], sharex=axes["matrix"])
     axes["photo"] = fig.add_subplot(grid[1:, 0])
+    for name in ("input", "matrix", "bars", "photo"):
+        axes[name].set_gid(name)
 
     _cells(axes["input"], n_in, 1)
     axes["input"].set_title(tr("input"), fontsize=9)

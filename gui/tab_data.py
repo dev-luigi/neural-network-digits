@@ -66,6 +66,21 @@ class DataTab(base.Tab):
             "The dataset before training: some photos of each digit, how many photos there are per digit, the "
             "\"average digit\" (all the photos of a digit on top of each other) and how the pixel values are "
             "spread out."), tr("Dataset charts"))
+        base.explain_charts(self.canvas, {
+            "samples": (tr("Sample photos"), tr(
+                "Ten photos of each digit, one row per digit, taken from the training photos: the same digit is "
+                "written in many different ways, and the network has to recognize all of them.")),
+            "per digit": (tr("Photos per digit"), tr(
+                "How many photos there are of each digit: blue the training ones, orange the test ones. The digits "
+                "are more or less equally many, so the network does not learn to prefer one of them.")),
+            "average digit": (tr("The average digit"), tr(
+                "All the photos of a digit laid on top of each other: the bright part is where almost everybody "
+                "draws the stroke, the dark part where nobody does. It is a first rough idea of what the network "
+                "has to learn.")),
+            "pixel values": (tr("Pixel values"), tr(
+                "How many pixels have each value, on a logarithmic scale: almost all are black (0) and the stroke "
+                "is close to 255. Before entering the network the values are divided by 255, so they go from 0 "
+                "to 1."))})
 
     def refresh(self):
         """Numbers and charts of the dataset (or a message if there are no photos)."""
