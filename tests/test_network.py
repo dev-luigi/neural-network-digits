@@ -4,7 +4,7 @@ import copy
 import numpy as np
 import pytest
 
-from neural_net.network import ACTIVATIONS, NeuralNetwork, softmax, softmax_steps
+from nn_digits.neural_net.network import ACTIVATIONS, NeuralNetwork, softmax, softmax_steps
 
 
 def test_softmax_gives_probabilities_even_with_huge_numbers():

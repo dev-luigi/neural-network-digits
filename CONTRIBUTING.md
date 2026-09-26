@@ -4,7 +4,9 @@ Thank you for wanting to help. You can:
 
 - **report a bug**: open an [issue](https://github.com/dev-luigi/neural-network-digits/issues/new/choose)
   with the *Bug report* template;
-- **propose an idea**: open an issue with the *Feature request* template;
+- **ask a question or discuss an idea**: write in the
+  [Discussions](https://github.com/dev-luigi/neural-network-digits/discussions);
+- **propose a feature**: open an issue with the *Feature request* template;
 - **change the code**: open a pull request (see below).
 
 For a security problem do not open a public issue: follow [SECURITY.md](SECURITY.md).
@@ -34,11 +36,12 @@ On Linux and macOS let `./start.sh` create the `.venv` with the libraries, then 
 
 ## Rules of the code
 
-- The logic in `neural_net/` does not depend on the interface: the tabs in `gui/` and the terminal
-  commands in `start.py` both use it.
+- The program is the `nn_digits/` package. The logic in `nn_digits/neural_net/` does not depend on the
+  interface: the tabs in `nn_digits/gui/` and the terminal commands in `nn_digits/cli.py` both use it.
+- Imports are absolute, from the package: `from nn_digits.neural_net import storage`.
 - The program is written in English. Every text shown to the user goes through `tr("...")` with a plain
   string (not an f-string or a variable), for example `tr("Epoch {n}", n=3)`.
-- Every text passed to `tr()` needs its Italian translation in `locales/it.json`, with the same
+- Every text passed to `tr()` needs its Italian translation in `nn_digits/locales/it.json`, with the same
   `{placeholders}`. The tests check it.
 
 ## License
