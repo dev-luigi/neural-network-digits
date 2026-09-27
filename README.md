@@ -318,9 +318,9 @@ Then, from the `main` branch:
 python tools/release.py publish         # tests, tag v1.1.0 and push: the CI/CD does the rest
 ```
 
-The CI/CD publishes the release on GitHub with the zip, then the package on PyPI: that last step waits for
-your approval (Actions tab, the run of the release, *Review deployments*). PyPI trusts this repository's
-workflow (Trusted Publishing), so there is no password or token to keep.
+The CI/CD publishes the release on GitHub with the zip, then the package on PyPI, with nothing to approve.
+PyPI trusts this repository's workflow (Trusted Publishing), so there is no password or token to keep, and
+only the `v*` tags can publish.
 
 ---
 

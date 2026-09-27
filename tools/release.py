@@ -6,8 +6,8 @@ Publishing a new version, in two commands:
     python tools/release.py publish          checks, runs the tests, commit, tag v1.1.0 and push to GitHub
 
 When the tag is pushed, GitHub's CI/CD (.github/workflows/release.yml) runs the tests again, creates the zip,
-publishes the release and (after your approval) publishes the package on PyPI: from that moment the installed
-programs offer the update.
+publishes the release and publishes the package on PyPI: from that moment the installed programs offer the
+update.
 
 Commands used by the CI/CD:
     python tools/release.py check v1.1.0     does the tag match the version, and are the changes written?
