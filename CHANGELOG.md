@@ -7,6 +7,15 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.2.1] - 2026-09-27
+
+- Closing the program (or updating it) while it saves the photos no longer leaves them half saved: the new
+  photos are written aside and take the place of the old ones only at the end.
+- Start waits for the download to finish: a download that ended during the training replaced the network,
+  and at the end an error window appeared.
+- At the end of a download the bar goes away and a line says how many photos were saved.
+- The point map no longer stays on "computing..." when a new model arrives while it is being computed.
+
 ## [1.2.0] - 2026-09-26
 
 - **On PyPI**: the program can be installed with `pipx install neural-network-digits` (or
