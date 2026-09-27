@@ -12,7 +12,7 @@ from PIL import Image, ImageColor
 from nn_digits.assistant import knowledge, rules
 from nn_digits.gui import base
 from nn_digits.gui.assistant import FRAME, MOST_FRAMES, THINKING, WIDTH
-from nn_digits.neural_net import charts, storage
+from nn_digits.neural_net import charts, data, storage
 from nn_digits.project import VERSION
 
 
@@ -220,6 +220,57 @@ def test_the_empty_charts_are_crossed_out(window):
     base.message(fig, "Nothing to show")  # a whole figure with nothing to show
     assert [text.get_text() for text in fig.texts] == ["Nothing to show"] and len(fig.artists) == 2
     assert not window.errors
+
+
+def test_the_training_waits_for_the_download(window, monkeypatch):
+    # A download that ends during a training would replace the network under it (and the window crashed at the end)
+    shown = []
+    monkeypatch.setattr("tkinter.messagebox.showinfo", lambda *message: shown.append(message))
+    tab = window.training_tab
+    monkeypatch.setattr(tab, "new_network", lambda: None)  # the test must not start a real training
+    window.data_tab.downloading = True
+    tab.start(1)
+    assert not tab.in_progress and shown and shown[0][0] == "Download in progress"
+    for kind, value in (("saved", (0, 0)), ("done", None)):  # the end of the download
+        window.data_tab._download_news(kind, value)
+    assert not window.data_tab.downloading
+    assert not window.errors
+
+
+def test_a_finished_download_says_so_instead_of_leaving_a_full_bar(window, monkeypatch, tmp_path):
+    rng = np.random.default_rng(0)
+    mnist = {"x_train": rng.integers(0, 256, (20, 28, 28), dtype=np.uint8), "y_train": np.arange(20) % 10,
+             "x_test": rng.integers(0, 256, (10, 28, 28), dtype=np.uint8), "y_test": np.arange(10) % 10}
+    monkeypatch.setattr(data, "PHOTOS_DIR", tmp_path / "photos")  # not the real photos
+    news = []
+    monkeypatch.setattr(base, "in_background", lambda widget, job, on_news: news.append(on_news))
+    tab = window.data_tab
+    assert not tab.progress.winfo_manager()  # no bar before a download
+    tab._download(2, 1)
+    assert tab.progress.winfo_manager() and tab.downloading
+    data.save_collection(mnist, 2, 1)  # what the thread does
+    for kind, value in (("saving", 0.5), ("saved", (20, 10)), ("done", None)):
+        news[0](kind, value)
+    assert not tab.progress.winfo_manager() and not tab.downloading
+    assert tab.status.cget("text") == "Completed: 20 training photos and 10 test photos saved."
+    tab.refresh()  # the tab is redrawn (for example coming back to it from another tab): the line stays
+    assert tab.status.cget("text") == "Completed: 20 training photos and 10 test photos saved."
+    assert not window.errors
+
+
+def test_the_map_of_the_old_network_does_not_stop_the_new_one(window, monkeypatch):
+    # A new model while a t-SNE map is being computed: the new network must compute its own map
+    started = []
+    monkeypatch.setattr(base, "in_background", lambda widget, job, on_news: started.append(on_news))
+    tab = window.evaluation_tab
+    tab.net = "old network"
+    tab._compute_map("key", None)
+    tab._compute_map("key", None)  # the same map of the same network: once is enough
+    tab.net = "new network"
+    tab._compute_map("key", None)
+    assert len(started) == 2
+    started[0]("done", None)  # the old map ends after the new one started
+    assert tab.computing == {("new network", "key")}
 
 
 def test_the_charts_can_be_found_by_the_assistant(window):

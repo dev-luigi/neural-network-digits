@@ -270,6 +270,8 @@ class TrainingTab(base.Tab):
         """Starts n_epochs of training in the separate thread."""
         if self.in_progress:
             return
+        if self.window.data_tab.downloading:  # at the end the new photos replace the network: it would train nothing
+            return messagebox.showinfo(tr("Download in progress"), tr("Wait for the download to finish (tab 1)."))
         if self.trainer is None or self.trainer.epoch == 0:
             self.new_network()  # network never trained: I recreate it with the architecture chosen now
             if self.trainer is None:

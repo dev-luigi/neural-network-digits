@@ -41,6 +41,23 @@ def test_save_collection(photos_dir):
     assert sorted(load_photos("test")[1].tolist()) == sorted(MNIST["y_test"].tolist())
 
 
+def test_a_save_stopped_halfway_keeps_the_old_photos(photos_dir):
+    """Closing the program while it saves (the thread dies) must not leave half of the photos."""
+    save_collection(MNIST, 2, 1)
+    photos, digits = load_photos("train")
+
+    def closed(_fraction):
+        raise KeyboardInterrupt  # the first photo is saved, then the program stops
+
+    with pytest.raises(KeyboardInterrupt):
+        save_collection(MNIST, 5, 2, progress=closed)
+    assert data.count_photos("train") == 20
+    assert np.array_equal(load_photos("train")[0], photos) and np.array_equal(load_photos("train")[1], digits)
+    save_collection(MNIST, 3, 1)  # the next save cleans up what the interrupted one left
+    assert data.count_photos("train") == 30
+    assert sorted(path.name for path in photos_dir.iterdir()) == ["test", "test.npz", "train", "train.npz"]
+
+
 def test_the_quick_copy_is_used_instead_of_the_png_files(photos_dir, monkeypatch):
     save_collection(MNIST, 2, 1)
     monkeypatch.setattr(data.Image, "open", None)  # reading a PNG would fail
