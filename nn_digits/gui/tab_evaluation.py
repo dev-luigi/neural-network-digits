@@ -30,7 +30,7 @@ class EvaluationTab(base.Tab):
         super().__init__(window)
         self.net = self.photos = self.digits = self.curves = self.probabilities = self.map_photos = None
         self.maps = {}  # point maps already computed: (layer, method, alterations) -> (points, axes)
-        self.computing = set()  # maps being computed in the background
+        self.computing = set()  # maps being computed in the background: (network, key)
         self.ax = self.points = self.background = self.point_label = self.nearest = None
 
         c = base.column(self.frame)
@@ -222,10 +222,10 @@ class EvaluationTab(base.Tab):
         self.canvas.draw()
 
     def _compute_map(self, key, values):
-        if key in self.computing:
+        net = self.net  # with the network in the name, a new network does not wait for the map of the old one
+        if (net, key) in self.computing:
             return
-        self.computing.add(key)
-        net = self.net
+        self.computing.add((net, key))
 
         def job(send):
             send("map", charts.project_2d(values, key[1]))
@@ -235,7 +235,7 @@ class EvaluationTab(base.Tab):
                 self.maps[key] = data
                 self._draw()
             elif kind in ("done", "error"):
-                self.computing.discard(key)
+                self.computing.discard((net, key))
                 if kind == "error":
                     messagebox.showerror(tr("Point map"), tr("I could not compute the map:\n{error}", error=data))
 

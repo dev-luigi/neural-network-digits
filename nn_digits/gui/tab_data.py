@@ -18,6 +18,8 @@ class DataTab(base.Tab):
 
     def __init__(self, window):
         super().__init__(window)
+        self.downloading = False  # while it is True the training cannot start (see TrainingTab.start)
+        self.completed = ""  # how the last download went: it stays when the tab is redrawn
         c = base.column(self.frame)
         base.title(c, tr("The dataset"))
         base.label(c, tr("28x28 photos of handwritten digits, from the MNIST dataset. Looking at the data before "
@@ -44,8 +46,7 @@ class DataTab(base.Tab):
             "All the photos of MNIST: 60000 for training and 10000 for test. Before starting it tells you how much "
             "space they take."))
         self.all_button.pack(fill="x", pady=(0, 6))
-        self.progress = ttk.Progressbar(c, maximum=1.0)
-        self.progress.pack(fill="x")
+        self.progress = ttk.Progressbar(c, maximum=1.0)  # it shows up only during a download
         self.status = base.label(c, "", base.TEXT)
         base.label(c, tr("More photos = a more accurate network, but slower training. MNIST is downloaded only once "
                          "(~11 MB): after that the photos can be extracted again even without internet."))
@@ -89,13 +90,13 @@ class DataTab(base.Tab):
             test_photos, test_digits = self.window.photos("test")
         except FileNotFoundError:
             self.numbers.clear()
-            self.status.config(text=tr("No photos: press \"Download the photos\"."))
+            self.status.config(text=tr("No photos: press \"Download the photos\"."), fg=base.TEXT)
             base.message(self.fig, tr("Download the photos to see the dataset"))
         else:
             self.numbers.show({"training photos": len(photos), "test photos": len(test_photos),
                                "black pixels": f"{np.mean(photos == 0):.0%}",
                                "average pixel value": f"{photos.mean():.0f} / 255"})
-            self.status.config(text="")
+            self.status.config(text=self.completed, fg=base.GREEN)
             charts.exploration(self.fig, photos, digits, test_photos, test_digits)
         self.canvas.draw()
 
@@ -139,13 +140,17 @@ class DataTab(base.Tab):
         """Downloads MNIST and saves `per_digit` photos of each digit (None = all of them)."""
         if self._busy():
             return
+        self.downloading, self.completed = True, ""
         for widget in (self.download_button, self.all_button, self.reset_button):
             widget.config(state="disabled")
-        self.status.config(text=tr("Downloading..."))
+        self.progress["value"] = 0
+        self.progress.pack(fill="x", before=self.status)
+        self.status.config(text=tr("Downloading..."), fg=base.TEXT)
 
         def job(send):  # runs in a separate thread: the window stays free
             mnist = download_mnist(progress=lambda fraction: send("progress", fraction))
-            save_collection(mnist, per_digit, test_per_digit, progress=lambda fraction: send("saving", fraction))
+            send("saved", save_collection(mnist, per_digit, test_per_digit,
+                                          progress=lambda fraction: send("saving", fraction)))
 
         base.in_background(self.frame, job, self._download_news)
 
@@ -156,7 +161,12 @@ class DataTab(base.Tab):
         elif kind == "saving":
             self.progress["value"] = data
             self.status.config(text=tr("Saving the photos as PNG: {fraction:.0%}", fraction=data))
+        elif kind == "saved":
+            self.completed = tr("Completed: {train} training photos and {test} test photos saved.",
+                                train=data[0], test=data[1])
         else:  # "done" or "error"
+            self.downloading = False
+            self.progress.pack_forget()  # in its place the line of self.completed says how it went
             for widget in (self.download_button, self.all_button, self.reset_button):
                 widget.config(state="normal")
             if kind == "error":
@@ -174,5 +184,5 @@ class DataTab(base.Tab):
         if choice is None:
             return
         storage.reset(include_photos=choice)
-        self.progress["value"] = 0
+        self.completed = ""
         self.window.photos_changed()
