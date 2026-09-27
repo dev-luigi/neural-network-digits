@@ -2,7 +2,7 @@
 #   1. runs all the tests again and builds the package for PyPI (ci.yml)
 #   2. checks that the tag matches the version in nn_digits/project.py and that CHANGELOG.md has the changes
 #   3. creates the zip of the program and publishes the release on GitHub, with the changes as its text
-#   4. publishes the package on PyPI, after the approval of the maintainer (the "pypi" environment)
+#   4. publishes the package on PyPI (the "pypi" environment, which only the v* tags can use)
 # The programs already installed find the release at the next start and offer the update.
 name: Release
 
@@ -46,7 +46,7 @@ jobs:
           --title "Version ${GITHUB_REF_NAME#v}" --notes-file notes.md --verify-tag
 
   # Trusted Publishing: PyPI trusts this workflow of this repository, so no password or token is needed.
-  # The "pypi" environment waits for the approval of the maintainer (Actions tab > the run > Review deployments).
+  # Only the v* tags can use the "pypi" environment, and it publishes without waiting for an approval.
   pypi:
     needs: release
     runs-on: ubuntu-latest

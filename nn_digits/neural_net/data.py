@@ -75,22 +75,32 @@ def save_collection(mnist, per_digit=None, test_per_digit=None, progress=None):
 def save_photos(photos, digits, split, per_digit, rng, progress=None):
     """Picks `per_digit` random photos of each digit (None = all of them) and saves them as PNG in
     data/photos/<split>/<digit>/, plus a quick copy of them all in data/photos/<split>.npz (see load_photos).
-    progress(photos saved so far), if given, is called every 500 photos."""
-    folder = PHOTOS_DIR / split
-    shutil.rmtree(folder, ignore_errors=True)  # away with the old photos
+    progress(photos saved so far), if given, is called every 500 photos.
+    The new photos are written in <split>.new and take the place of the old ones only at the end: if the program
+    is closed halfway, the old photos stay as they were (and meanwhile the other tabs can still read them)."""
+    folder, new, old = (PHOTOS_DIR / name for name in (split, f"{split}.new", f"{split}.old"))
+    new_copy = PHOTOS_DIR / f"{split}.new.npz"
+    for leftover in (new, old):  # what is left of a save interrupted halfway
+        shutil.rmtree(leftover, ignore_errors=True)
     chosen = []
     for digit in range(10):
-        (folder / str(digit)).mkdir(parents=True)
+        (new / str(digit)).mkdir(parents=True)
         available = np.flatnonzero(digits == digit)
         if per_digit is not None:
             available = np.sort(rng.choice(available, min(per_digit, len(available)), replace=False))
         chosen.append(available)
     chosen = np.concatenate(chosen)  # digit after digit, in the order in which load_photos reads them
     for n, index in enumerate(chosen):
-        Image.fromarray(photos[index]).save(folder / str(digits[index]) / f"mnist_{index:05d}.png")
+        Image.fromarray(photos[index]).save(new / str(digits[index]) / f"mnist_{index:05d}.png")
         if progress and n % 500 == 0:
             progress(n)
-    np.savez_compressed(quick_copy(split), photos=photos[chosen], digits=digits[chosen].astype(np.int64))
+    np.savez_compressed(new_copy, photos=photos[chosen], digits=digits[chosen].astype(np.int64))
+    # All saved: the new photos take the place of the old ones (renaming takes a moment, deleting does not)
+    if folder.exists():
+        folder.rename(old)
+    new.rename(folder)
+    new_copy.replace(quick_copy(split))
+    shutil.rmtree(old, ignore_errors=True)
 
 
 def quick_copy(split):
