@@ -104,6 +104,12 @@ class InfoTab(base.Tab):
         base.section(right, tr("Updates"))
         self.status = base.label(right, tr("Installed version: {version}", version=VERSION), base.TEXT, 10,
                                  width=TEXT_WIDTH)
+        self.site = updater.release_site()
+        command = updater.update_command()
+        base.label(right, tr("Installed with {method}: \"Update now\" runs  {command}", method=updater.install_method(),
+                             command=updater.command_text(command)) if command else
+                   tr("Downloaded as a zip: \"Update now\" downloads the new zip from GitHub."), pady=(4, 0),
+                   width=TEXT_WIDTH)
         r = base.row(right, pady=(8, 0))
         self.check_button = base.button(r, tr("Check now"), self.check_for_updates, primary=True)
         self.check_button.pack(side="left")
@@ -122,11 +128,11 @@ class InfoTab(base.Tab):
     # ------------------------------------------------ checking for updates
 
     def check_for_updates(self, silent=False):
-        """Asks GitHub for the latest version (without blocking the window). If it is newer it opens the
+        """Asks GitHub (or PyPI) for the latest version (without blocking the window). If it is newer it opens the
         small update window. silent=True (at start): no error on screen if internet is missing,
         and no small window for a version that you chose to skip."""
         self.check_button.config(state="disabled")
-        self.status.config(text=tr("Checking on GitHub..."), fg=base.TEXT)
+        self.status.config(text=tr("Checking on {site}...", site=self.site), fg=base.TEXT)
 
         def job(send):
             send("release", updater.latest_release())
@@ -135,8 +141,8 @@ class InfoTab(base.Tab):
             if kind == "release":
                 self._handle_release(data, silent)
             elif kind == "error":
-                self.status.config(text=tr("I can't reach GitHub: are you connected to the internet?\n({error})",
-                                           error=data), fg=base.TEXT_SOFT)
+                self.status.config(text=tr("I can't reach {site}: are you connected to the internet?\n({error})",
+                                           site=self.site, error=data), fg=base.TEXT_SOFT)
             if kind in ("done", "error"):
                 self.check_button.config(state="normal")
 
@@ -145,7 +151,7 @@ class InfoTab(base.Tab):
     def _handle_release(self, release, silent):
         if release is None:
             return self.status.config(text=tr("Installed version: {version}. There are no published versions on "
-                                              "GitHub yet.", version=VERSION))
+                                              "{site} yet.", version=VERSION, site=self.site))
         if not updater.is_newer(release["version"]):
             return self.status.config(text=tr("You have the latest version ({version}).", version=VERSION),
                                       fg=base.GREEN)
@@ -192,13 +198,6 @@ class UpdateDialog:
         self.dialog.destroy()
 
     def install(self):
-        if updater.installed_with_git():
-            return messagebox.showinfo(tr("Update"), tr("This copy of the program was downloaded with git: to "
-                                                        "update it run  git pull  in its folder."), parent=self.dialog)
-        if updater.installed_with_pip():
-            return messagebox.showinfo(tr("Update"), tr("This copy of the program was installed with pip: to update "
-                                                        "it run in the terminal\n{command}\nthen open it again.",
-                                                        command=updater.UPGRADE_COMMAND), parent=self.dialog)
         if self.window.training_tab.in_progress and not messagebox.askyesno(
                 tr("Update"), tr("A training is in progress: the program will restart and the training will "
                                  "stop. Update anyway?"), parent=self.dialog):
@@ -207,10 +206,15 @@ class UpdateDialog:
             button.config(state="disabled")
         self.bar.pack(fill="x", pady=(12, 0), before=self.status)
         version, url = self.release["version"], self.release["zip"]
+        command = updater.update_command()
+        if command:  # git and pip do not say how much is left
+            self.bar.config(mode="indeterminate")
+            self.bar.start(15)
+            self.status.config(text=tr("Running  {command}", command=updater.command_text(command)))
 
         def job(send):
             try:
-                requirements_changed = updater.install(url, lambda fraction: send("download", fraction))
+                requirements_changed = updater.update(url, lambda fraction: send("download", fraction))
             except Exception as error:
                 raise RuntimeError(tr("Update failed, the program has not changed.\n{error}", error=error)) from error
             if requirements_changed:
@@ -235,6 +239,7 @@ class UpdateDialog:
                 updater.restart()
                 self.window.close()
             elif kind == "error":
+                self.bar.stop()
                 self.bar.pack_forget()
                 self.status.config(text=str(data), fg=base.RED)
                 for button in self.buttons:

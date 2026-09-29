@@ -132,7 +132,7 @@ def training(fig, state, noise=None, title=None):
                xlabel=tr("epoch"), ylim=(0, 1.02))
     ax_acc.yaxis.set_major_formatter(PercentFormatter(1.0))
 
-    # Strength of the corrections (gradient) of each layer: if it collapses the layer stops learning,
+    # Strength of the corrections (gradient) of each layer, per weight: if it collapses the layer stops learning,
     # if it explodes the network becomes unstable. In brackets the "inactive" neurons (always the same output).
     for k, strength in enumerate(np.array(history["gradients"]).T):
         if k < len(history["inactive"][-1]):

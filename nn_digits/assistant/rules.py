@@ -186,7 +186,8 @@ def _initial_weights(state):
     if state.get("tab") == "training" and (scale <= 0.2 or scale >= 3):
         return Hint("initial weights", tr("The initial weights are x{scale:g}: with a width that is far from x1 the "
                                           "signal fades out (x0.1) or explodes (x5) layer after layer. Fine for an "
-                                          "experiment: look at the gaussians and the corrections per layer.",
+                                          "experiment: look at the gaussians and the corrections per layer, and "
+                                          "compare them with a network at x1.",
                                           scale=scale),
                     (("set", "init_scale", 1.0),), tr("Width x1"), "initialization")
 

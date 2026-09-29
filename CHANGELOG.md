@@ -7,6 +7,19 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.2.2] - 2026-09-29
+
+- **Update now** installs the new version by itself, however the program was installed (zip, git, pip, pipx, uv).
+- Copies installed with pip, pipx or git at 1.2.1 or older: update them by hand once
+  (`pipx upgrade neural-network-digits` or `git pull`), then it is automatic.
+- The window has its own icon (a small neural network) instead of the Python one, and on Windows the taskbar
+  no longer groups it with the other Python programs.
+- **Strength of the corrections per layer** shows the correction of a single weight on average: before, the
+  big layers looked stronger just because they have more weights, and the order of the layers was often
+  reversed. Found by u/quietgradient ([#13](https://github.com/dev-luigi/neural-network-digits/issues/13)).
+- The texts on the initial weights and the README experiments say what the charts really show
+  (x0.1 with sigmoid, x5 with relu).
+
 ## [1.2.1] - 2026-09-27
 
 - Closing the program (or updating it) while it saves the photos no longer leaves them half saved: the new

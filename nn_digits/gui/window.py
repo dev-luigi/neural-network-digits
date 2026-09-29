@@ -15,7 +15,7 @@ import traceback
 from tkinter import messagebox, ttk
 
 from nn_digits import i18n, updater
-from nn_digits.gui import base
+from nn_digits.gui import base, icon
 from nn_digits.gui.assistant import WIDTH, AssistantPanel
 from nn_digits.gui.pick import Picker
 from nn_digits.gui.tab_data import DataTab
@@ -186,7 +186,9 @@ class MainWindow:
 
 def run():
     """Opens the window. Started from start.bat there is no terminal: errors are shown in a small window."""
+    icon.apply_app_id()
     root = tk.Tk()
+    icon.apply(root)
     root.report_callback_exception = lambda *error: messagebox.showerror(
         tr("Error"), "".join(traceback.format_exception(*error)))
     try:

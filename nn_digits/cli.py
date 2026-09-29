@@ -161,23 +161,26 @@ def reset(args):
 
 
 def update(args):
-    """Checks on GitHub for a new version and, if you confirm, installs it (data/ is not touched)."""
+    """Checks for a new version and, if you confirm, installs it the way this copy was installed
+    (data/ is not touched)."""
     release = updater.latest_release(timeout=10)
     if release is None:
-        return print(tr("There are no published versions on GitHub yet."))
+        return print(tr("There are no published versions on {site} yet.", site=updater.release_site()))
     if not updater.is_newer(release["version"]):
         return print(tr("You already have the latest version ({version}).", version=VERSION))
     print(tr("Version {new} is available (you have {current}).", new=release["version"], current=VERSION)
           + f"\n\n{release['notes']}\n")
-    if updater.installed_with_git():
-        return print(tr("This copy was downloaded with git: update it with  git pull"))
-    if updater.installed_with_pip():
-        return print(tr("This copy was installed with pip: update it with  {command}",
-                        command=updater.UPGRADE_COMMAND))
     if not args.yes and input(tr("Install it now? [y/N] ")).strip().lower() not in YES:
         return print(tr("Cancelled."))
-    if updater.install(release["zip"], lambda fraction: print(
-            "\r  " + tr("downloading: {fraction:.0%}", fraction=fraction), end="", flush=True)):
+    command = updater.update_command()
+    if command:
+        print(tr("Running  {command}", command=updater.command_text(command)))
+    try:
+        libraries_changed = updater.update(release["zip"], lambda fraction: print(
+            "\r  " + tr("downloading: {fraction:.0%}", fraction=fraction), end="", flush=True))
+    except (RuntimeError, OSError, ValueError) as error:
+        sys.exit("\n" + tr("Update failed, the program has not changed.\n{error}", error=error))
+    if libraries_changed:
         print("\n  " + tr("installing the new libraries..."))
         updater.install_requirements()
     print("\n" + tr("Done: you now have version {version}.", version=release["version"]))

@@ -2,6 +2,8 @@
 # It is created again from the interface (tabs 1 and 2) or with  start.bat download / start.bat train
 data/
 
+docs/logica-neural-net/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -21,3 +23,6 @@ env/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local experiments and their reports (not part of the program)
+experiments/
