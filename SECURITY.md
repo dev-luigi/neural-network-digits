@@ -4,8 +4,8 @@
 
 Only the latest version, the one on the [Releases](https://github.com/dev-luigi/neural-network-digits/releases/latest)
 page, receives fixes. A fix is published as a new version, and the program offers it at the next start
-(or with `start.bat update`, on Linux and macOS `./start.sh update`; installed with pip,
-`pipx upgrade neural-network-digits`).
+and installs it by itself (or with `start.bat update`, on Linux and macOS `./start.sh update`; installed with pip,
+`neural-network-digits update`).
 
 ## Reporting a vulnerability
 

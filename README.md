@@ -182,16 +182,23 @@ There are no photos yet:
 
 ### Updates
 
-Every time the interface opens, the program asks GitHub whether a new version is out (you can turn this
-off in the **Info** tab). If there is one, it shows the changes and offers:
-- **Update now**: downloads the new version, replaces the program files and restarts. The
-  `data/` folder (photos, model, settings) is not touched, and if something goes wrong
-  the old files are put back.
+Every time the interface opens, the program checks whether a new version is out (on PyPI if you installed it
+with pip, on GitHub otherwise; you can turn this off in the **Info** tab). If there is one, it shows the changes
+and offers:
+- **Update now**: installs it in the same way you installed the program, then restarts. Your photos, model and
+  settings are not touched.
 - **Later** or **Skip this version**.
 
-From the terminal it is `start.bat update` (on Linux and macOS `./start.sh update`). If you downloaded the project
-with `git clone`, update with `git pull` instead. If you installed it with pip, the program tells you when a new
-version is out and you update it with `pipx upgrade neural-network-digits` (or `pip install -U neural-network-digits`).
+| Installed with | **Update now** runs |
+|---|---|
+| the zip | downloads the zip of the new release and replaces the program files (if something goes wrong, the old ones are put back) |
+| `git clone` | `git pull` (only if you have not changed the same files) |
+| pipx | `pipx upgrade neural-network-digits` |
+| `uv tool install` | `uv tool upgrade neural-network-digits` |
+| pip | `python -m pip install --upgrade neural-network-digits` |
+
+The **Info** tab shows which one applies to your copy. From the terminal it is `start.bat update` (on Linux and
+macOS `./start.sh update`), or `neural-network-digits update` if you installed it with pip.
 
 ---
 

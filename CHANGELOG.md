@@ -7,6 +7,12 @@ All the versions of the program, newest first. The format is the one of
 The paragraph of each version becomes the text of its GitHub release and shows up in the program
 when the update is offered.
 
+## [1.2.2] - 2026-09-29
+
+- **Update now** installs the new version by itself, however the program was installed (zip, git, pip, pipx, uv).
+- Copies installed with pip, pipx or git at 1.2.1 or older: update them by hand once
+  (`pipx upgrade neural-network-digits` or `git pull`), then it is automatic.
+
 ## [1.2.1] - 2026-09-27
 
 - Closing the program (or updating it) while it saves the photos no longer leaves them half saved: the new
