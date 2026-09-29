@@ -12,6 +12,8 @@ when the update is offered.
 - **Update now** installs the new version by itself, however the program was installed (zip, git, pip, pipx, uv).
 - Copies installed with pip, pipx or git at 1.2.1 or older: update them by hand once
   (`pipx upgrade neural-network-digits` or `git pull`), then it is automatic.
+- The window has its own icon (a small neural network) instead of the Python one, and on Windows the taskbar
+  no longer groups it with the other Python programs.
 
 ## [1.2.1] - 2026-09-27
 
