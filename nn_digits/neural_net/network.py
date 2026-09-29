@@ -56,7 +56,7 @@ class NeuralNetwork:
         # Momentum: remembers the direction of the previous corrections, so the network learns faster
         self.weight_velocity = [np.zeros_like(W) for W in self.weights]
         self.bias_velocity = [np.zeros_like(b) for b in self.biases]
-        self.gradient_norms = [0.0] * len(self.weights)  # how big the last corrections of each layer were
+        self.gradient_norms = [0.0] * len(self.weights)  # how big the last corrections of each layer were, per weight
 
     @property
     def n_parameters(self):
@@ -113,7 +113,9 @@ class NeuralNetwork:
         for i in reversed(range(len(self.weights))):
             gradient_W = activations[i].T @ error + l2 * self.weights[i]
             gradient_b = error.sum(axis=0)
-            self.gradient_norms[i] = float(np.linalg.norm(gradient_W))
+            # Average correction of a single weight: the first layer has 50,176 weights and the last one 320,
+            # so the total would make the big layers look stronger just because they are big
+            self.gradient_norms[i] = float(np.linalg.norm(gradient_W) / np.sqrt(gradient_W.size))
             if i > 0:
                 # The error goes back to the previous layer, weighted by how "sensitive" each neuron was
                 error = (error @ self.weights[i].T) * derivatives[i - 1]

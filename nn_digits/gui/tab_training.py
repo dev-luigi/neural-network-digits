@@ -73,8 +73,9 @@ class TrainingTab(base.Tab):
         self.init_scale = base.slider(c, tr("Width of the initial weights"), -1, 0.7, 0.05, 0,
                                       show=lambda v: f"x {base.power(v):g}", explanation=tr(
             "Multiplies the width of the gaussian the initial weights are drawn from. x1 is the \"right\" "
-            "choice (He for relu, LeCun for the others). Try x0.1 (the signal fades out layer after "
-            "layer) and x5 (the signal explodes), then look at the gaussians and the corrections per layer."))
+            "choice (He for relu, LeCun for the others). Try x0.1 with sigmoid (the signal fades out layer "
+            "after layer and the first layer barely learns) and x5 with relu (the signal explodes and switches "
+            "off the neurons), then look at the gaussians and the corrections per layer."))
 
         base.section(c, tr("Optimization  (can be changed during training too)"))
         s = self.sliders = {"init_scale": self.init_scale}  # the controls the assistant can move (set_control)
@@ -182,9 +183,12 @@ class TrainingTab(base.Tab):
                 "The share of photos guessed right at the end of every epoch: blue the training photos, orange the "
                 "validation ones. In the title, the last validation accuracy."), base.chart_title),
             "corrections": (tr("Strength of the corrections"), tr(
-                "How big the corrections (gradients) of each layer are, epoch after epoch, on a logarithmic scale. "
-                "A line that collapses is a layer that stops learning, one that shoots up makes the network "
-                "unstable. In brackets, the share of inactive neurons."), base.chart_legend),
+                "How big the correction (gradient) of a single weight of each layer is on average, epoch after "
+                "epoch, on a logarithmic scale. The lines are not at the same height even in a healthy network: "
+                "the first layer is usually the lowest, because many pixels are black and their weights get no "
+                "correction. What matters is how they change: a line that collapses is a layer that stops "
+                "learning, one that shoots up makes the network unstable. In brackets, the share of inactive "
+                "neurons."), base.chart_legend),
             "first layer": (tr("What the first layer looks for"), tr(
                 "Each small square is a neuron of the first layer: its 784 weights redrawn as a 28x28 photo. Red = "
                 "pixels that switch it on, blue = pixels that switch it off. At the start it is noise; while the "

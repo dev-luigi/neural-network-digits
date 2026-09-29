@@ -161,8 +161,10 @@ def concepts():
                    "signal, gaussians"),
                 tr("Before learning, the weights are random numbers drawn from a gaussian. Its width matters: x1 is "
                    "the right choice (He for relu, LeCun for the others). Much narrower (x0.1) and the signal fades "
-                   "out layer after layer; much wider (x5) and it explodes. Look at the gaussians and the corrections "
-                   "per layer in tab 2."),
+                   "out layer after layer: the corrections of the first layer become tiny and the network stays "
+                   "stuck for a while (much longer with sigmoid). Much wider (x5) and it explodes: with relu the "
+                   "first corrections are huge, they switch off most neurons and then collapse. Look at the "
+                   "gaussians and the corrections per layer in tab 2."),
                 "training", tr("Set the width to x0.1, then to x5: press New network and Start, and compare the "
                                "gaussians.")),
         Concept("inactive", tr("Inactive neurons"),

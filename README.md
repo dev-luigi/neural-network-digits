@@ -260,8 +260,10 @@ in the `charts` folder of the data).
 
 - **Learning rate at 1**: the network stops learning. Look at the inactive neurons and at the
   gaussians that widen out of all proportion.
-- **Sigmoid with 2 layers**: it learns more slowly. Look at the strength of the corrections of the first layer.
-- **Initial width x0.1 and x5**: the signal dies out or explodes.
+- **Sigmoid with initial width x0.1**: the signal fades out layer after layer. In the strength of the
+  corrections the first layer starts far below the others, and rises only when the network gets unstuck.
+- **Relu with initial width x5**: the signal explodes, most neurons switch off and the corrections
+  collapse: the network stays at 10%.
 - **Noise 0 versus noise 0.3 in training**: train with noise 0 and try the damaged photos in the
   Evaluation tab, then train again with noise 0.3 and compare.
 - **Maximum rotation 0 versus 30°**, then evaluate with the rotation at 25°.
