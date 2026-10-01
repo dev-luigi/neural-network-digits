@@ -1,0 +1,15 @@
+# Dependabot version updates: once a week it checks whether the GitHub Actions used by the workflows have a newer
+# version, and if so it opens a single pull request to develop that updates them all together.
+# The Python dependencies are left out on purpose: they are minimum versions (numpy>=1.22, ...) chosen to keep
+# Python 3.9 working, and users already get the newest versions when they install. Raising those minimums would only
+# drop support for older Pythons. Vulnerabilities in them are covered by the Dependabot alerts.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
