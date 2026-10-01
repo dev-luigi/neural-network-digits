@@ -24,9 +24,9 @@ jobs:
     env:
       MPLBACKEND: Agg
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
 
@@ -55,9 +55,9 @@ jobs:
     name: Package for PyPI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -81,7 +81,7 @@ jobs:
           pip-install/bin/python -m nn_digits --version
           pip-install/bin/python -c "from nn_digits import updater; assert updater.installed_with_pip(); assert updater.install_method() == 'pip'; assert updater.CHANGELOG.exists(); print(updater.storage.DATA_DIR)"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: package
           path: dist/
